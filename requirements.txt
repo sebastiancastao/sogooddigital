@@ -1,29 +1,23 @@
 # Web Framework and Deployment
 Flask>=2.3.0
 gunicorn>=21.2.0
-Werkzeug>=2.3.0
 
 # OpenAI and AI
 openai>=1.0.0
 
-# Document processing
-python-docx>=0.8.11
-
 # Google APIs
+google-api-python-client>=2.88.0
 google-auth>=2.17.0
 google-auth-oauthlib>=0.8.0
 google-auth-httplib2>=0.1.0
-google-api-python-client>=2.88.0
 
 # Web scraping and research
 scholarly>=1.7.11
 requests>=2.31.0
-beautifulsoup4>=4.12.0
 
 # Natural Language Processing
 nltk>=3.8.0
 spacy>=3.7.0
-textblob>=0.17.1
 
 # Configuration and environment
 python-dotenv>=1.0.0
