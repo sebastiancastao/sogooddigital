@@ -55,3 +55,6 @@ opencv-python-headless>=4.8.0
 # Additional deployment dependencies
 Pillow>=10.0.0
 MarkupSafe>=2.1.0 
+
+python-docx>=1.1.0,<2.0.0
+chardet>=5.0.0,<6.0.0
