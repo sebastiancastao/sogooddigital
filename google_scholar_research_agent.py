@@ -26,6 +26,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+# Google Credentials Helper
+from google_credentials_helper import GoogleCredentialsHelper
+
 # Document processing
 from docx import Document
 from docx.shared import Inches
@@ -738,75 +741,32 @@ class GoogleScholarResearchAgent:
         return stats
 
     def authenticate_google_services(self) -> bool:
-        """Authenticate with Google services using service account (no OAuth popups)"""
+        """Authenticate with Google services using environment variables or service account files"""
         try:
-            creds = None
-            auth_method = "none"
+            logger.info("[AUTH] Authenticating with Google services...")
             
-            # Try service account authentication first (no OAuth popup)
-            service_account_paths = [
-                'service-account.json',
-                'task assigner/service-account.json', 
-                os.getenv('GOOGLE_SERVICE_ACCOUNT_PATH', '')
-            ]
+            # Use the GoogleCredentialsHelper to get credentials
+            self.google_service, self.drive_service = GoogleCredentialsHelper.build_google_services(self.google_scopes)
             
-            for sa_path in service_account_paths:
-                if sa_path and os.path.exists(sa_path):
-                    try:
-                        from google.oauth2 import service_account
-                        creds = service_account.Credentials.from_service_account_file(
-                            sa_path, scopes=self.google_scopes)
-                        auth_method = f"service_account:{sa_path}"
-                        logger.info(f"[OK] Using service account authentication: {sa_path}")
-                        break
-                    except Exception as e:
-                        logger.warning(f"[WARNING] Service account auth failed for {sa_path}: {e}")
-            
-            # Fallback to existing token if service account not available
-            if not creds and os.path.exists('token.json'):
-                try:
-                    creds = Credentials.from_authorized_user_file('token.json', self.google_scopes)
-                    if creds and creds.expired and creds.refresh_token:
-                        creds.refresh(Request())
-                    auth_method = "oauth_token"
-                    logger.info("[OK] Using existing OAuth token")
-                except Exception as e:
-                    logger.warning(f"[WARNING] Token refresh failed: {e}")
-            
-            # Validate credentials
-            if not creds:
-                logger.error("[ERROR] No valid Google credentials available")
-                logger.error("  ❌ Service account authentication failed")
-                logger.error("  ❌ OAuth token not available or invalid")
-                logger.error("")
-                logger.error("  🔧 SOLUTION:")
-                logger.error("  1. Add service-account.json file to your project directory")
-                logger.error("  2. Or set GOOGLE_SERVICE_ACCOUNT_PATH environment variable")
-                logger.error("  3. Ensure service account has Google Docs and Drive API access")
-                logger.error("  4. Share your Google Docs with: sebastiancastano@phonic-goods-317118.iam.gserviceaccount.com")
-                return False
-            
-            # For OAuth tokens, check validity and refresh if needed
-            if hasattr(creds, 'expired') and creds.expired and hasattr(creds, 'refresh_token') and creds.refresh_token:
-                try:
-                    creds.refresh(Request())
-                    logger.info("[OK] OAuth credentials refreshed")
-                except Exception as e:
-                    logger.error(f"[ERROR] Failed to refresh OAuth credentials: {e}")
-                    return False
-            
-            # Build Google services
-            try:
-                self.google_service = build('docs', 'v1', credentials=creds)
-                self.drive_service = build('drive', 'v3', credentials=creds)
-                
-                logger.info(f"[OK] Google services authenticated successfully ({auth_method})")
+            if self.google_service and self.drive_service:
+                logger.info("[OK] Google services authenticated successfully")
                 logger.info("[OK] ✅ Google Docs API ready")
                 logger.info("[OK] ✅ Google Drive API ready")
                 return True
-                
-            except Exception as e:
-                logger.error(f"[ERROR] Failed to build Google services: {e}")
+            else:
+                logger.error("[ERROR] No valid Google credentials available")
+                logger.error("")
+                logger.error("  🔧 SOLUTIONS:")
+                logger.error("  1. Set Google environment variables (recommended):")
+                logger.error("     GOOGLE_TYPE=service_account")
+                logger.error("     GOOGLE_PROJECT_ID=your_project_id")
+                logger.error("     GOOGLE_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----\\n...'")
+                logger.error("     GOOGLE_CLIENT_EMAIL=your_service_account@project.iam.gserviceaccount.com")
+                logger.error("     (and other required variables)")
+                logger.error("  2. Or place service-account.json in your project directory")
+                logger.error("  3. Or set GOOGLE_SERVICE_ACCOUNT_PATH environment variable")
+                logger.error("  4. Ensure service account has Google Docs and Drive API access")
+                logger.error("  5. Share your Google Docs with the service account email")
                 return False
             
         except Exception as e:

@@ -17,6 +17,7 @@ from google.oauth2.service_account import Credentials
 import requests
 # Local imports
 from config import Config
+from google_credentials_helper import GoogleCredentialsHelper
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,12 +55,14 @@ class TaskAssigner:
         self.setup_google_docs()
         
     def setup_google_docs(self):
-        """Setup Google Docs API credentials using service account"""
+        """Setup Google Docs API credentials using environment variables or service account files"""
         SCOPES = ['https://www.googleapis.com/auth/documents.readonly']
         
-        # Use service account authentication
-        self.google_creds = Credentials.from_service_account_file(
-            'service-account.json', scopes=SCOPES)
+        # Use GoogleCredentialsHelper to get credentials
+        self.google_creds = GoogleCredentialsHelper.get_google_credentials(SCOPES)
+        
+        if not self.google_creds:
+            raise ValueError("Could not setup Google Docs API credentials. Please check your environment variables or service account files.")
         
         self.docs_service = build('docs', 'v1', credentials=self.google_creds)
     

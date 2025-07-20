@@ -23,6 +23,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import pickle
 
+# Local imports
+from google_credentials_helper import GoogleCredentialsHelper
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -64,25 +67,26 @@ class FlaskTaskAssigner:
         self.setup_google_docs()
         
     def setup_google_docs(self):
-        """Setup Google Docs API credentials"""
+        """Setup Google Docs API credentials using environment variables or service account files"""
         SCOPES = ['https://www.googleapis.com/auth/documents.readonly']
         
-        creds = None
-        # Try token file first (OAuth flow)
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
+        # Use GoogleCredentialsHelper to get credentials
+        creds = GoogleCredentialsHelper.get_google_credentials(SCOPES)
         
-        # If no valid credentials, try service account
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            elif os.path.exists(self.google_credentials_path):
-                try:
-                    # Try service account first
-                    creds = Credentials.from_service_account_file(
-                        self.google_credentials_path, scopes=SCOPES)
-                except Exception:
+        # Fallback to legacy OAuth flow if no service account credentials available
+        if not creds:
+            logger.warning("No service account credentials found, trying legacy OAuth flow...")
+            
+            # Try token file first (OAuth flow)
+            if os.path.exists('token.pickle'):
+                with open('token.pickle', 'rb') as token:
+                    creds = pickle.load(token)
+            
+            # If no valid credentials, try OAuth flow
+            if not creds or not creds.valid:
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                elif os.path.exists(self.google_credentials_path):
                     try:
                         # Fallback to OAuth flow
                         flow = InstalledAppFlow.from_client_secrets_file(
@@ -100,7 +104,7 @@ class FlaskTaskAssigner:
         if creds:
             self.docs_service = build('docs', 'v1', credentials=creds)
         else:
-            raise ValueError("Could not setup Google Docs API credentials")
+            raise ValueError("Could not setup Google Docs API credentials. Please check your environment variables or service account files.")
     
     def setup_team_members(self):
         """Initialize team members with their responsibilities and keywords"""

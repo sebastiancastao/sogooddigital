@@ -9,12 +9,17 @@ import json
 import re
 import requests
 from config import Config
+from google_credentials_helper import GoogleCredentialsHelper
 
 def extract_text_from_google_doc(doc_id: str):
     """Extract text content from a Google Doc"""
-    # Setup Google Docs API
+    # Setup Google Docs API using environment variables or service account files
     SCOPES = ['https://www.googleapis.com/auth/documents.readonly']
-    creds = Credentials.from_service_account_file('service-account.json', scopes=SCOPES)
+    creds = GoogleCredentialsHelper.get_google_credentials(SCOPES)
+    
+    if not creds:
+        raise ValueError("Could not get Google credentials. Please check your environment variables or service account files.")
+    
     docs_service = build('docs', 'v1', credentials=creds)
     
     doc = docs_service.documents().get(documentId=doc_id).execute()
