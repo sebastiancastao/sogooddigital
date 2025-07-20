@@ -1,0 +1,872 @@
+{% extends "base.html" %}
+
+{% block title %}Results - SoGoodDigital Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="glass-card section">
+    <div style="text-align: center; max-width: 600px; margin: 0 auto;">
+        <h1>Research Analysis Complete</h1>
+        <p class="text-secondary">
+            Task ID: <code class="code-highlight">{{ task_id }}</code>
+        </p>
+        <p class="text-tertiary">
+            Completed: {{ task_info.completion_time or 'Just now' }}
+        </p>
+    </div>
+</div>
+
+<!-- Document Access Section -->
+<div class="glass-card section">
+    <h2 style="margin-bottom: 1.5rem; text-align: center;">📄 Your Research Documents</h2>
+    
+    {% if results.documents_created %}
+    <div class="documents-grid">
+        {% if results.documents_created.word %}
+        <div class="document-card">
+            <div class="document-icon">
+                <i class="bi bi-file-earmark-word"></i>
+            </div>
+            <div class="document-info">
+                <h4>Word Document</h4>
+                <p class="document-description">Comprehensive research report in Word format</p>
+                <a href="{{ url_for('download_file', filename=results.documents_created.word.filename) }}" 
+                   class="btn btn-primary" 
+                   download
+                   data-word-download="{{ url_for('download_file', filename=results.documents_created.word.filename) }}"
+                   data-word-filename="{{ results.documents_created.word.filename }}">
+                    <i class="bi bi-download"></i>
+                    Download Word Doc
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if results.documents_created.google_doc %}
+        <div class="document-card">
+            <div class="document-icon">
+                <i class="bi bi-google"></i>
+            </div>
+            <div class="document-info">
+                <h4>Google Document</h4>
+                <p class="document-description">{{ results.documents_created.google_doc.title }}</p>
+                <div class="google-doc-actions">
+                    <a href="{{ results.documents_created.google_doc.view_url }}" 
+                       class="btn btn-primary" target="_blank">
+                        <i class="bi bi-eye"></i>
+                        View Document
+                    </a>
+                    <a href="{{ results.documents_created.google_doc.edit_url }}" 
+                       class="btn btn-secondary" target="_blank" style="margin-left: 0.5rem;">
+                        <i class="bi bi-pencil"></i>
+                        Edit Document
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if results.documents_created.google_doc_error %}
+        <div class="document-card error">
+            <div class="document-icon">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="document-info">
+                <h4>Google Document (Error)</h4>
+                <p class="document-description error-text">{{ results.documents_created.google_doc_error }}</p>
+                <p class="help-text">Try generating a Word document instead</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if results.documents_created.pdf_note %}
+        <div class="document-card">
+            <div class="document-icon">
+                <i class="bi bi-file-earmark-pdf"></i>
+            </div>
+            <div class="document-info">
+                <h4>PDF Document</h4>
+                <p class="document-description">{{ results.documents_created.pdf_note }}</p>
+                <button class="btn btn-tertiary" disabled>
+                    <i class="bi bi-info-circle"></i>
+                    Coming Soon
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <!-- Fallback for old document_filename format -->
+    {% if results.document_filename %}
+    <div class="documents-grid">
+        <div class="document-card">
+            <div class="document-icon">
+                <i class="bi bi-file-earmark-word"></i>
+            </div>
+            <div class="document-info">
+                <h4>Research Document</h4>
+                <p class="document-description">Comprehensive research report</p>
+                <a href="{{ url_for('download_file', filename=results.document_filename) }}" 
+                   class="btn btn-primary" download>
+                    <i class="bi bi-download"></i>
+                    Download Document
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2rem;">
+        <p class="text-secondary">No documents were generated</p>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="glass-card section" style="text-align: center;">
+    <a href="{{ url_for('research_form') }}" class="btn btn-secondary">
+        <i class="bi bi-plus-circle"></i>
+        Start New Analysis
+    </a>
+    
+    <a href="{{ url_for('index') }}" class="btn btn-tertiary" style="margin-left: 1rem;">
+        <i class="bi bi-house"></i>
+        Back to Dashboard
+    </a>
+</div>
+                
+<!-- Research Summary -->
+<div class="glass-card section">
+    <h2 style="margin-bottom: 1.5rem;">Research Summary</h2>
+    
+    <div class="summary-grid">
+        <div class="summary-stat">
+            <div class="stat-value">{{ results.papers_found or 0 }}</div>
+            <div class="stat-label">Papers Found</div>
+            <div class="stat-icon"><i class="bi bi-search"></i></div>
+        </div>
+        <div class="summary-stat">
+            <div class="stat-value">{{ results.papers_analyzed or 0 }}</div>
+                                <div class="stat-label">Papers Analyzed</div>
+            <div class="stat-icon"><i class="bi bi-graph-up"></i></div>
+        </div>
+        <div class="summary-stat">
+            <div class="stat-value">{{ results.pdfs_downloaded or 0 }}</div>
+            <div class="stat-label">PDFs Downloaded</div>
+            <div class="stat-icon"><i class="bi bi-file-earmark-pdf"></i></div>
+        </div>
+        <div class="summary-stat">
+            <div class="stat-value">{{ ((task_info.last_update - task_info.start_time) / 60) | round(1) }}m</div>
+            <div class="stat-label">Processing Time</div>
+            <div class="stat-icon"><i class="bi bi-clock"></i></div>
+                            </div>
+                        </div>
+                            </div>
+
+<!-- Analysis Parameters -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Analysis Parameters</h3>
+    
+    <div class="param-list">
+        <div class="param-item">
+            <span class="param-label">Input Method:</span>
+            <span class="param-value">{{ task_info.input_method.replace('_', ' ').title() }}</span>
+                        </div>
+        <div class="param-item">
+            <span class="param-label">Analysis Focus:</span>
+            <span class="param-value">{{ results.analysis_focus.title() if results.analysis_focus else 'Marketing & Business' }}</span>
+                            </div>
+        <div class="param-item">
+            <span class="param-label">Search Queries:</span>
+            <span class="param-value">{{ results.search_queries|join(', ') if results.search_queries else 'N/A' }}</span>
+                        </div>
+        <div class="param-item">
+            <span class="param-label">Max Papers:</span>
+            <span class="param-value">{{ task_info.max_papers }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+{% if results.marketing_analysis %}
+<!-- Marketing Analysis Highlights -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Marketing Analysis Highlights</h3>
+                        
+    {% if results.marketing_analysis.executive_summary %}
+    <div class="executive-summary">
+        <h4>Executive Summary</h4>
+        <p>{{ results.marketing_analysis.executive_summary }}</p>
+    </div>
+    {% endif %}
+    
+    {% if results.marketing_analysis.quick_actions %}
+    <div class="quick-actions-section">
+        <h4>Quick Actions for Marketing Teams</h4>
+        <ul class="action-list">
+            {% for action in results.marketing_analysis.quick_actions %}
+            <li class="action-item">
+                <i class="bi bi-lightning-charge"></i>
+                {{ action }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    {% if results.marketing_analysis.overall_marketing_analysis %}
+    <div class="trend-analysis">
+        <h4>Top Marketing Trends Identified</h4>
+        {% if results.marketing_analysis.overall_marketing_analysis.top_marketing_trends %}
+        <div class="trend-list">
+            {% for trend in results.marketing_analysis.overall_marketing_analysis.top_marketing_trends %}
+            <div class="trend-item">
+                <i class="bi bi-arrow-up-right"></i>
+                {{ trend }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if results.keywords_data %}
+<!-- Keywords Analysis -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Keywords Analysis</h3>
+    
+    <div class="keywords-grid">
+        {% if results.keywords_data.primary_keywords %}
+        <div class="keyword-section">
+            <h4>Primary Keywords</h4>
+            <div class="keyword-tags">
+                {% for keyword in results.keywords_data.primary_keywords %}
+                <span class="keyword-tag primary">{{ keyword }}</span>
+                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+        {% if results.keywords_data.research_topics %}
+        <div class="keyword-section">
+            <h4>Research Topics</h4>
+            <div class="keyword-tags">
+                {% for topic in results.keywords_data.research_topics %}
+                <span class="keyword-tag topic">{{ topic }}</span>
+                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+{% endif %}
+
+{% if results.bright_data_stats %}
+<!-- Technical Performance -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Technical Performance</h3>
+    
+    <div class="tech-stats-grid">
+        <div class="tech-stat">
+            <div class="tech-value">{{ results.bright_data_stats.requests_made or 0 }}</div>
+            <div class="tech-label">API Requests</div>
+            </div>
+        <div class="tech-stat">
+            <div class="tech-value">{{ "%.1f"|format(results.bright_data_stats.success_rate or 0) }}%</div>
+            <div class="tech-label">Success Rate</div>
+                </div>
+        <div class="tech-stat">
+            <div class="tech-value">{{ results.bright_data_stats.captcha_bypassed or 0 }}</div>
+            <div class="tech-label">CAPTCHAs Bypassed</div>
+                        </div>
+        <div class="tech-stat">
+            <div class="tech-value">{{ "%.2f"|format(results.bright_data_stats.average_response_time or 0) }}s</div>
+            <div class="tech-label">Avg Response Time</div>
+                        </div>
+                    </div>
+    
+    <div class="tech-info">
+        <p class="text-secondary">
+            <i class="bi bi-shield-check"></i>
+            Advanced CAPTCHA bypass and web unlocker enabled
+        </p>
+    </div>
+                    </div>
+                    {% endif %}
+
+<!-- Paper Analysis Details -->
+{% if results.marketing_analysis and results.marketing_analysis.individual_papers %}
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Individual Paper Analysis</h3>
+    
+    <div class="papers-analysis">
+        {% for paper in results.marketing_analysis.individual_papers[:5] %}
+        <div class="paper-card">
+            <div class="paper-header">
+                <h4 class="paper-title">{{ paper.title or 'Untitled Paper' }}</h4>
+                <div class="relevance-score">
+                    <span class="score-value">{{ paper.marketing_relevance_score or 'N/A' }}</span>
+                    <span class="score-label">/10</span>
+                </div>
+            </div>
+            
+            {% if paper.authors %}
+            <div class="paper-authors">
+                <i class="bi bi-people"></i>
+                {{ paper.authors|join(', ') if paper.authors is iterable else paper.authors }}
+                </div>
+            {% endif %}
+            
+            {% if paper.summary %}
+            <div class="paper-summary">
+                <p>{{ paper.summary[:200] }}{% if paper.summary|length > 200 %}...{% endif %}</p>
+                        </div>
+            {% endif %}
+            
+            {% if paper.marketing_takeaways %}
+            <div class="paper-takeaways">
+                <h5>Key Marketing Takeaways:</h5>
+                <ul>
+                    {% for takeaway in paper.marketing_takeaways[:3] %}
+                    <li>{{ takeaway }}</li>
+                    {% endfor %}
+                                </ul>
+            </div>
+            {% endif %}
+            
+            {% if paper.url %}
+            <div class="paper-link">
+                <a href="{{ paper.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    View Paper
+                </a>
+                </div>
+                                    {% endif %}
+                                </div>
+        {% endfor %}
+        
+        {% if results.marketing_analysis.individual_papers|length > 5 %}
+        <div class="more-papers">
+            <p class="text-secondary">
+                <i class="bi bi-info-circle"></i>
+                And {{ results.marketing_analysis.individual_papers|length - 5 }} more papers analyzed in the full document
+            </p>
+                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                                    {% endif %}
+
+<!-- Process Timeline -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Process Timeline</h3>
+    
+    <div class="timeline">
+        {% for detail in task_info.details %}
+        <div class="timeline-item">
+            <div class="timeline-time">{{ detail.timestamp }}</div>
+            <div class="timeline-content">
+                <div class="timeline-message">{{ detail.message }}</div>
+                <div class="timeline-progress">{{ detail.progress }}%</div>
+                                </div>
+                            </div>
+        {% endfor %}
+                        </div>
+                    </div>
+
+<!-- Export Options -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Export & Share</h3>
+    
+    <div class="export-options">
+        {% if results.document_filename %}
+        <div class="export-item">
+            <div class="export-icon">
+                <i class="bi bi-file-earmark-word"></i>
+            </div>
+            <div class="export-details">
+                <h4>Research Document</h4>
+                <p>Comprehensive analysis with marketing insights</p>
+                <a href="{{ url_for('download_file', filename=results.document_filename) }}" class="btn btn-primary" download>
+                    <i class="bi bi-download"></i>
+                    Download (.docx)
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="export-item">
+            <div class="export-icon">
+                <i class="bi bi-share"></i>
+            </div>
+            <div class="export-details">
+                <h4>Share Results</h4>
+                <p>Share this analysis with your team</p>
+                <button class="btn btn-secondary" onclick="copyResultsLink()">
+                    <i class="bi bi-link-45deg"></i>
+                    Copy Link
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-redirect notification -->
+<div id="redirect-notice" class="glass-card section" style="text-align: center; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+    <p style="color: var(--accent-blue); margin-bottom: 1rem;">
+        <i class="bi bi-info-circle"></i>
+        Redirecting to Research Analysis form in <span id="countdown">15</span> seconds...
+    </p>
+    <button onclick="cancelRedirect()" class="btn btn-tertiary">
+        Stay on this page
+    </button>
+</div>
+
+<!-- Navigation -->
+<div class="glass-card section" style="text-align: center;">
+    <div class="nav-actions">
+        <a href="{{ url_for('research_form') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Start New Analysis
+        </a>
+        
+        <a href="{{ url_for('index') }}" class="btn btn-secondary" style="margin-left: 1rem;">
+            <i class="bi bi-house"></i>
+            Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyResultsLink() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(function() {
+            // Show success message
+            showNotification('Link copied to clipboard!', 'success');
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+            showNotification('Failed to copy link', 'error');
+        });
+    }
+    
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Show animation
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
+        
+        // Remove after delay
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }
+    
+    // Initialize tooltips and interactive elements
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add hover effects to paper cards
+        const paperCards = document.querySelectorAll('.paper-card');
+        paperCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Add success message if just completed
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('completed') === 'true') {
+            showNotification('Research analysis completed successfully!', 'success');
+        }
+        
+        // Auto-download Word document if available
+        const wordDocElement = document.querySelector('[data-word-download]');
+        if (wordDocElement) {
+            setTimeout(function() {
+                const downloadUrl = wordDocElement.getAttribute('data-word-download');
+                const filename = wordDocElement.getAttribute('data-word-filename');
+                
+                try {
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = filename;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Show download notification with filename
+                    showNotification(`📄 Auto-downloading: ${filename}`, 'success');
+                    
+                    // Show fallback notification after a delay if user doesn't see download
+                    setTimeout(() => {
+                        showNotification('💡 If download didn\'t start, click the "Download Word Doc" button below', 'info');
+                    }, 3000);
+                } catch (error) {
+                    console.error('Auto-download failed:', error);
+                    showNotification('⚠️ Auto-download failed. Please use the download button below.', 'error');
+                }
+            }, 1500); // Slightly longer delay to ensure page is fully loaded
+        }
+        
+        // Start auto-redirect countdown
+        startRedirectCountdown();
+    });
+    
+    let redirectTimer;
+    let countdownTimer;
+    
+    function startRedirectCountdown() {
+        let seconds = 15;
+        const countdownElement = document.getElementById('countdown');
+        
+        countdownTimer = setInterval(() => {
+            seconds--;
+            if (countdownElement) {
+                countdownElement.textContent = seconds;
+            }
+            
+            if (seconds <= 0) {
+                clearInterval(countdownTimer);
+                window.location.href = '{{ url_for("research_form") }}';
+            }
+        }, 1000);
+        
+        redirectTimer = setTimeout(() => {
+            window.location.href = '{{ url_for("research_form") }}';
+        }, 15000);
+    }
+    
+    function cancelRedirect() {
+        if (redirectTimer) {
+            clearTimeout(redirectTimer);
+        }
+        if (countdownTimer) {
+            clearInterval(countdownTimer);
+        }
+        
+        const redirectNotice = document.getElementById('redirect-notice');
+        if (redirectNotice) {
+            redirectNotice.style.display = 'none';
+        }
+        
+        showNotification('Auto-redirect cancelled. You can stay on this page.', 'info');
+    }
+</script>
+
+<style>
+/* Results-specific styles */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.summary-stat {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--glass-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    position: relative;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.stat-icon {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: var(--accent-blue);
+    opacity: 0.3;
+    font-size: 1.2rem;
+}
+
+.param-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.param-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--glass-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.param-label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.param-value {
+    color: var(--text-secondary);
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.keyword-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.keyword-tag {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.keyword-tag.primary {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.keyword-tag.topic {
+    background: var(--accent-green);
+    color: white;
+}
+
+.papers-analysis {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.paper-card {
+    padding: 1.5rem;
+    background: var(--glass-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    transition: all var(--transition-fast);
+}
+
+.paper-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.paper-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.relevance-score {
+    background: var(--accent-blue);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.paper-authors {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.paper-summary {
+    margin-bottom: 1rem;
+}
+
+.paper-takeaways h5 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    }
+
+.paper-takeaways ul {
+    margin: 0;
+    padding-left: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.paper-takeaways li {
+    margin-bottom: 0.25rem;
+}
+
+.timeline {
+    display: grid;
+    gap: 1rem;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--glass-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.timeline-time {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-message {
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.timeline-progress {
+    font-size: 0.8rem;
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.export-options {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.export-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--glass-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+}
+
+.export-icon {
+    font-size: 2rem;
+    color: var(--accent-blue);
+}
+
+.export-details h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.export-details p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.notification {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: var(--glass-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 1rem;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.3s ease;
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.notification.success {
+    border-left: 4px solid var(--accent-green);
+}
+
+.notification.info {
+    border-left: 4px solid var(--accent-blue);
+}
+
+.notification.error {
+    border-left: 4px solid var(--accent-rose);
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    }
+
+.code-highlight {
+    background: var(--glass-secondary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .paper-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .paper-title {
+        margin-right: 0;
+    }
+    
+    .export-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .timeline-item {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+</style>
+{% endblock %} 

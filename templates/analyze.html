@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Analyze - Google Scholar Research Agent{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-microscope me-2"></i>
+                    Research Analysis
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('analyze') }}" id="analyzeForm">
+                    <div class="mb-4">
+                        <label for="google_file_id" class="form-label">
+                            <i class="fas fa-file-alt me-2"></i>
+                            Google File ID
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="google_file_id" 
+                               name="google_file_id" 
+                               required
+                               placeholder="Enter your Google file ID here...">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Find this in your Google file URL after '/d/' and before '/edit'
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="output_format" class="form-label">
+                            <i class="fas fa-file-export me-2"></i>
+                            Output Format
+                        </label>
+                        <select class="form-select" id="output_format" name="output_format">
+                            <option value="both">Both Word Document and Google Doc</option>
+                            <option value="google_doc">Google Doc Only</option>
+                            <option value="word">Word Document Only</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-play me-2"></i>
+                            Start Analysis
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-12">
+        <div class="accordion" id="helpAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingOne">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                        <i class="fas fa-question-circle me-2"></i>
+                        How to find your Google File ID
+                    </button>
+                </h2>
+                <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body">
+                        <h6>Step-by-step instructions:</h6>
+                        <ol>
+                            <li>Open your Google Doc, Sheet, or Slide</li>
+                            <li>Look at the URL in your browser address bar</li>
+                            <li>Find the long string of characters after '/d/' and before '/edit'</li>
+                            <li>Copy this string - that's your File ID</li>
+                        </ol>
+                        <div class="alert alert-info mt-3">
+                            <strong>Example:</strong><br>
+                            URL: <code>https://docs.google.com/document/d/1ABC123xyz456/edit</code><br>
+                            File ID: <code>1ABC123xyz456</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingTwo">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                        <i class="fas fa-share-alt me-2"></i>
+                        Sharing Permissions
+                    </button>
+                </h2>
+                <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body">
+                        <h6>To allow our system to access your file:</h6>
+                        <ol>
+                            <li>Open your Google file</li>
+                            <li>Click the "Share" button</li>
+                            <li>Add this email address: <code>sebastiancastano@phonic-goods-317118.iam.gserviceaccount.com</code></li>
+                            <li>Set permission to "Viewer" or "Editor"</li>
+                            <li>Click "Send"</li>
+                        </ol>
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Important:</strong> Without proper sharing permissions, the analysis cannot access your file content.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingThree">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                        <i class="fas fa-clock me-2"></i>
+                        Analysis Process
+                    </button>
+                </h2>
+                <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body">
+                        <h6>What happens during analysis:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul>
+                                    <li><strong>Keyword Extraction:</strong> AI identifies key research terms from your document</li>
+                                    <li><strong>Scholar Search:</strong> Automatically searches Google Scholar for relevant papers</li>
+                                    <li><strong>Content Analysis:</strong> Downloads and analyzes full-text papers when possible</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul>
+                                    <li><strong>AI Synthesis:</strong> Generates insights and identifies research themes</li>
+                                    <li><strong>Document Creation:</strong> Creates comprehensive research reports</li>
+                                    <li><strong>Quality Control:</strong> Filters papers based on relevance and quality</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="alert alert-success mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Typical processing time:</strong> 2-5 minutes depending on document complexity and number of papers found.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Tips for Best Results
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Document Preparation:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Include clear research questions or topics</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Use specific technical terms when relevant</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Provide context about your research area</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Expected Outputs:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-file-word text-primary me-2"></i>Comprehensive research synthesis</li>
+                            <li><i class="fas fa-chart-bar text-info me-2"></i>Quantitative analysis of findings</li>
+                            <li><i class="fas fa-list text-warning me-2"></i>Detailed paper summaries with citations</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('analyzeForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    form.addEventListener('submit', function(e) {
+        // Disable the submit button to prevent double submission
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Starting Analysis...';
+        
+        // Validate Google File ID format
+        const fileId = document.getElementById('google_file_id').value.trim();
+        if (!fileId) {
+            e.preventDefault();
+            alert('Please enter a Google File ID');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-play me-2"></i>Start Analysis';
+            return;
+        }
+        
+        // Basic validation for Google File ID format
+        if (fileId.length < 10) {
+            e.preventDefault();
+            alert('Google File ID seems too short. Please check the ID and try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-play me-2"></i>Start Analysis';
+            return;
+        }
+    });
+    
+    // Auto-format Google File ID input
+    document.getElementById('google_file_id').addEventListener('input', function(e) {
+        let value = e.target.value.trim();
+        
+        // Extract file ID from full URL if pasted
+        if (value.includes('docs.google.com')) {
+            const match = value.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match) {
+                e.target.value = match[1];
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

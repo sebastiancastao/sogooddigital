@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}Processing - SoGoodDigital Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="glass-card section">
+    <div style="text-align: center; max-width: 600px; margin: 0 auto;">
+        <h1>Processing Your Request</h1>
+        <p class="text-secondary">
+            Task ID: <code class="code-highlight">{{ task_id }}</code>
+        </p>
+        <p class="text-tertiary">
+            {{ task_info.input_method.replace('_', ' ').title() }} Method
+        </p>
+    </div>
+</div>
+
+<!-- Progress Overview -->
+<div class="glass-card section">
+    <div class="progress-overview">
+        <div class="progress-header">
+            <h3>{{ task_info.type.replace('_', ' ').title() }} Progress</h3>
+            <div class="progress-percentage">{{ task_info.progress }}%</div>
+        </div>
+        
+        <!-- Main Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="mainProgress" style="width: {{ task_info.progress }}%;"></div>
+        </div>
+        
+        <!-- Current Step Indicator -->
+        <div class="current-step">
+            <div class="step-info">
+                <span class="step-number">{{ task_info.current_step + 1 }}</span> of {{ task_info.total_steps }}
+            </div>
+            <div class="step-details">
+                <h4 id="currentStatus">{{ task_info.message }}</h4>
+                <p class="text-secondary">{{ task_info.steps[task_info.current_step] if task_info.current_step < task_info.steps|length }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Process Steps -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Process Steps</h3>
+    
+    <div class="process-steps-list">
+        {% for step in task_info.steps %}
+        <div class="process-step-item {{ 'completed' if loop.index0 < task_info.current_step else 'active' if loop.index0 == task_info.current_step else 'pending' }}">
+            <div class="step-icon">
+                {% if loop.index0 < task_info.current_step %}
+                    <i class="bi bi-check-circle-fill"></i>
+                {% elif loop.index0 == task_info.current_step %}
+                    <i class="bi bi-arrow-clockwise spin"></i>
+                {% else %}
+                    <i class="bi bi-circle"></i>
+                {% endif %}
+            </div>
+            <div class="step-content">
+                <h4>Step {{ loop.index }}: {{ step }}</h4>
+                {% if loop.index0 < task_info.current_step %}
+                    <p class="step-status completed">Completed</p>
+                {% elif loop.index0 == task_info.current_step %}
+                    <p class="step-status active">In Progress</p>
+                {% else %}
+                    <p class="step-status pending">Pending</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if task_info.type == 'research' %}
+<!-- Research Statistics -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Research Progress Statistics</h3>
+    
+    <div class="stats-grid">
+        <div class="stat-item">
+            <div class="stat-value" data-stat="papers_found">{{ task_info.papers_found }}</div>
+            <div class="stat-label">Papers Found</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" data-stat="papers_processed">{{ task_info.papers_processed }}</div>
+            <div class="stat-label">Papers Processed</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" data-stat="pdfs_downloaded">{{ task_info.pdfs_downloaded }}</div>
+            <div class="stat-label">PDFs Downloaded</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" data-stat="max_papers">{{ task_info.max_papers }}</div>
+            <div class="stat-label">Max Papers Target</div>
+        </div>
+    </div>
+    
+    <!-- Research Parameters -->
+    <div class="param-grid" style="margin-top: 1.5rem;">
+        <div class="param-item">
+            <span class="param-label">Analysis Focus:</span>
+            <span class="param-value">{{ task_info.analysis_focus.title() }}</span>
+        </div>
+        <div class="param-item">
+            <span class="param-label">Output Formats:</span>
+            <span class="param-value">{{ task_info.output_formats|join(', ') if task_info.output_formats else 'Word Document' }}</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Live Updates Panel -->
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">Live Updates</h3>
+    
+    <div class="updates-container" id="liveUpdates">
+        {% if task_info.details %}
+            {% for detail in task_info.details|reverse %}
+            <div class="update-item">
+                <div class="update-time">{{ detail.timestamp }}</div>
+                <div class="update-message">{{ detail.message }}</div>
+                <div class="update-progress">{{ detail.progress }}%</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-updates">
+                <div class="loading-spinner"></div>
+                <p>Waiting for updates...</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="glass-card section" style="text-align: center;">
+    {% if task_info.status == 'completed' %}
+        <a href="{{ url_for('research_results', task_id=task_id) }}" class="btn btn-primary">
+            <i class="bi bi-eye"></i>
+            View Results
+        </a>
+    {% elif task_info.status == 'error' %}
+        <a href="{{ url_for('research_form') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Try Again
+        </a>
+    {% else %}
+        <button class="btn btn-secondary" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh Status
+        </button>
+    {% endif %}
+    
+    <a href="{{ url_for('index') }}" class="btn btn-tertiary" style="margin-left: 1rem;">
+        <i class="bi bi-house"></i>
+        Back to Dashboard
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-refresh functionality
+    let refreshInterval;
+    let taskId = '{{ task_id }}';
+    let redirectAttempts = 0;
+    const maxRedirectAttempts = 3;
+    let pageLoadTime = Date.now();
+    let fallbackTimer;
+    
+    function updateProgress() {
+        fetch(`/api/research/status/${taskId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    console.error('Error fetching status:', data.error);
+                    showError(data.error);
+                    return;
+                }
+                
+                // Update progress bar
+                const progressBar = document.getElementById('mainProgress');
+                if (progressBar) {
+                    progressBar.style.width = data.progress + '%';
+                }
+                
+                // Update current status
+                const statusElement = document.getElementById('currentStatus');
+                if (statusElement) {
+                    statusElement.textContent = data.message;
+                }
+                
+                // Update statistics if they exist
+                updateStatistics(data);
+                
+                // Update live updates
+                updateLiveUpdates(data.details);
+                
+                // Check if completed or error
+                if (data.status === 'completed') {
+                    clearInterval(refreshInterval);
+                    clearTimeout(fallbackTimer);
+                    handleTaskCompletion();
+                } else if (data.status === 'error') {
+                    clearInterval(refreshInterval);
+                    clearTimeout(fallbackTimer);
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                redirectAttempts++;
+                
+                if (redirectAttempts >= maxRedirectAttempts) {
+                    clearInterval(refreshInterval);
+                    showError('Unable to get task status. Please check manually.');
+                    showManualRedirectOption();
+                }
+            });
+    }
+    
+    function handleTaskCompletion() {
+        // Show completion message
+        const statusElement = document.getElementById('currentStatus');
+        if (statusElement) {
+            statusElement.innerHTML = `
+                <span style="color: var(--accent-green); font-weight: bold; font-size: 1.1em;">
+                    ✅ Research completed successfully! Redirecting to results...
+                </span>
+            `;
+        }
+        
+        // Update progress to 100%
+        const progressBar = document.getElementById('mainProgress');
+        if (progressBar) {
+            progressBar.style.width = '100%';
+        }
+        
+        // Show manual redirect option immediately
+        showManualRedirectOption();
+        
+        // Show completion notification
+        showCompletionNotification();
+        
+        // Attempt automatic redirect with shorter delay
+        setTimeout(() => {
+            try {
+                window.location.href = `/research/results/${taskId}`;
+            } catch (error) {
+                console.error('Automatic redirect failed:', error);
+                showError('Automatic redirect failed. Please use the manual link below.');
+            }
+        }, 1000); // Reduced from 2000ms to 1000ms
+    }
+    
+    function showCompletionNotification() {
+        // Create a prominent completion notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--accent-green);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-weight: bold;
+            animation: slideIn 0.3s ease;
+        `;
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>Research Complete!</span>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        // Remove notification after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+    }
+    
+    function showManualRedirectOption() {
+        // Add manual redirect button if it doesn't exist
+        if (!document.getElementById('manualRedirect')) {
+            const statusElement = document.getElementById('currentStatus');
+            if (statusElement && statusElement.parentNode) {
+                const manualRedirectDiv = document.createElement('div');
+                manualRedirectDiv.id = 'manualRedirect';
+                manualRedirectDiv.style.marginTop = '1rem';
+                manualRedirectDiv.innerHTML = `
+                    <div style="text-align: center; padding: 1.5rem; background: var(--glass-secondary); border-radius: 12px; border: 2px solid var(--accent-green); animation: pulse 2s infinite;">
+                        <p style="margin-bottom: 1rem; color: var(--text-primary); font-weight: bold;">
+                            <i class="bi bi-check-circle-fill" style="color: var(--accent-green);"></i>
+                            Research Analysis Complete!
+                        </p>
+                        <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+                            Your comprehensive research document is ready for review.
+                        </p>
+                        <a href="/research/results/${taskId}" 
+                           class="btn btn-primary" 
+                           style="text-decoration: none; font-size: 1.1em; padding: 0.75rem 2rem;">
+                            <i class="bi bi-eye"></i>
+                            View Results & Download Document
+                        </a>
+                    </div>
+                `;
+                statusElement.parentNode.insertBefore(manualRedirectDiv, statusElement.nextSibling);
+            }
+        }
+    }
+    
+    function setupFallbackTimer() {
+        // Set up a fallback timer for long-running processes
+        fallbackTimer = setTimeout(() => {
+            console.log('Fallback timer triggered - checking if task might be completed');
+            
+            // If we've been on this page for more than 10 minutes, something might be wrong
+            const timeElapsed = Date.now() - pageLoadTime;
+            if (timeElapsed > 600000) { // 10 minutes
+                const statusElement = document.getElementById('currentStatus');
+                if (statusElement) {
+                    statusElement.innerHTML += `
+                        <div style="margin-top: 1rem; padding: 1rem; background: var(--accent-amber); color: var(--text-primary); border-radius: 8px;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Taking longer than expected?</strong><br>
+                            You can check the results manually or start a new analysis.
+                            <div style="margin-top: 1rem;">
+                                <a href="/research/results/${taskId}" class="btn btn-secondary" style="margin-right: 0.5rem;">Check Results</a>
+                                <a href="/research" class="btn btn-tertiary">New Analysis</a>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }, 600000); // 10 minutes
+    }
+    
+    function updateStatistics(data) {
+        const statElements = {
+            'papers_found': data.papers_found,
+            'papers_processed': data.papers_processed,
+            'pdfs_downloaded': data.pdfs_downloaded
+        };
+        
+        for (const [key, value] of Object.entries(statElements)) {
+            const element = document.querySelector(`[data-stat="${key}"]`);
+            if (element && value !== undefined) {
+                element.textContent = value;
+            }
+        }
+    }
+    
+    function updateLiveUpdates(details) {
+        const updatesContainer = document.getElementById('liveUpdates');
+        if (!updatesContainer || !details || !details.length) return;
+        
+        // Clear existing content
+        updatesContainer.innerHTML = '';
+        
+        // Add recent updates (reverse to show newest first)
+        details.slice(-10).reverse().forEach(detail => {
+            const updateItem = document.createElement('div');
+            updateItem.className = 'update-item';
+            updateItem.innerHTML = `
+                <div class="update-time">${detail.timestamp}</div>
+                <div class="update-message">${detail.message}</div>
+                <div class="update-progress">${detail.progress}%</div>
+            `;
+            updatesContainer.appendChild(updateItem);
+        });
+    }
+    
+    function showError(message) {
+        const statusElement = document.getElementById('currentStatus');
+        if (statusElement) {
+            statusElement.innerHTML = `<span style="color: var(--accent-rose);">Error: ${message}</span>`;
+        }
+    }
+    
+    // Start auto-refresh if task is still running
+    document.addEventListener('DOMContentLoaded', function() {
+        const taskStatus = '{{ task_info.status }}';
+        
+        if (taskStatus === 'running' || taskStatus === 'starting') {
+            refreshInterval = setInterval(updateProgress, 3000); // Refresh every 3 seconds
+            setupFallbackTimer(); // Set up the fallback timer
+        }
+        
+        // Initial update
+        updateProgress();
+    });
+    
+    // Clear interval when page is hidden/unloaded
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && refreshInterval) {
+            clearInterval(refreshInterval);
+            clearTimeout(fallbackTimer); // Clear fallback timer on page hide
+        } else if (!document.hidden && ('{{ task_info.status }}' === 'running' || '{{ task_info.status }}' === 'starting')) {
+            refreshInterval = setInterval(updateProgress, 3000);
+            setupFallbackTimer(); // Re-set fallback timer on page show
+        }
+    });
+</script>
+{% endblock %} 

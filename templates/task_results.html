@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Task Assignment Results - SoGood Digital{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                ✅ Task Assignment Complete
+            </h1>
+            <p class="text-gray-600">
+                Successfully processed your document and assigned tasks to team members
+            </p>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ stats.total_tasks }}</div>
+                <div class="text-gray-600">Tasks Extracted</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                <div class="text-3xl font-bold text-green-600 mb-2">{{ stats.team_assignments|length }}</div>
+                <div class="text-gray-600">Team Members</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                <div class="text-3xl font-bold text-purple-600 mb-2">{{ stats.trello_cards_created }}</div>
+                <div class="text-gray-600">Trello Cards</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                <div class="text-3xl font-bold text-orange-600 mb-2">{{ stats.duration }}s</div>
+                <div class="text-gray-600">Processing Time</div>
+            </div>
+        </div>
+
+        <!-- Team Assignments Overview -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">👥 Team Assignments</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {% for member, count in stats.team_assignments.items() %}
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center
+                        {% if member == 'Rana' %}bg-purple-100
+                        {% elif member == 'Scott' %}bg-green-100
+                        {% elif member == 'Sebastian' %}bg-blue-100
+                        {% elif member == 'Ilia' %}bg-yellow-100
+                        {% else %}bg-gray-100{% endif %}">
+                        <span class="text-2xl font-bold
+                            {% if member == 'Rana' %}text-purple-600
+                            {% elif member == 'Scott' %}text-green-600
+                            {% elif member == 'Sebastian' %}text-blue-600
+                            {% elif member == 'Ilia' %}text-yellow-600
+                            {% else %}text-gray-600{% endif %}">
+                            {{ member[0] }}
+                        </span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-1">{{ member }}</h3>
+                    <p class="text-2xl font-bold text-gray-700">{{ count }}</p>
+                    <p class="text-sm text-gray-500">tasks assigned</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Detailed Task List -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">📋 Task Details</h2>
+            
+            {% if results.tasks %}
+            <div class="space-y-6">
+                {% for task in results.tasks %}
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ task.title }}</h3>
+                            <p class="text-gray-600 mb-3">{{ task.description }}</p>
+                        </div>
+                        <div class="ml-6 flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center
+                                {% if task.assignee == 'Rana' %}bg-purple-100
+                                {% elif task.assignee == 'Scott' %}bg-green-100
+                                {% elif task.assignee == 'Sebastian' %}bg-blue-100
+                                {% elif task.assignee == 'Ilia' %}bg-yellow-100
+                                {% else %}bg-gray-100{% endif %}">
+                                <span class="font-bold
+                                    {% if task.assignee == 'Rana' %}text-purple-600
+                                    {% elif task.assignee == 'Scott' %}text-green-600
+                                    {% elif task.assignee == 'Sebastian' %}text-blue-600
+                                    {% elif task.assignee == 'Ilia' %}text-yellow-600
+                                    {% else %}text-gray-600{% endif %}">
+                                    {{ task.assignee[0] if task.assignee else '?' }}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 text-center mt-1">{{ task.assignee }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</span>
+                            <div class="mt-1">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if task.priority == 'High' %}bg-red-100 text-red-800
+                                    {% elif task.priority == 'Medium' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-green-100 text-green-800{% endif %}">
+                                    {{ task.priority or 'Medium' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Effort</span>
+                            <div class="mt-1">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ task.effort or 'Medium' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Category</span>
+                            <div class="mt-1 text-sm text-gray-900">{{ task.category or 'General' }}</div>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</span>
+                            <div class="mt-1 text-sm text-gray-900">{{ task.deadline or 'Not specified' }}</div>
+                        </div>
+                    </div>
+                    
+                    {% if task.requirements or task.dependencies %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if task.requirements %}
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Requirements</span>
+                            <ul class="mt-1 text-sm text-gray-700">
+                                {% for req in task.requirements %}
+                                <li class="flex items-start">
+                                    <span class="mr-2">•</span>
+                                    <span>{{ req }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if task.dependencies %}
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Dependencies</span>
+                            <ul class="mt-1 text-sm text-gray-700">
+                                {% for dep in task.dependencies %}
+                                <li class="flex items-start">
+                                    <span class="mr-2">•</span>
+                                    <span>{{ dep }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <div class="text-gray-400 text-4xl mb-4">📝</div>
+                <p class="text-gray-500">No tasks were extracted from the document.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Trello Cards Created -->
+        {% if results.trello_cards %}
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">📋 Trello Cards Created</h2>
+            <div class="space-y-4">
+                {% for card in results.trello_cards %}
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900">{{ card.task }}</h3>
+                        <p class="text-sm text-gray-600">Assigned to: {{ card.assignee }}</p>
+                    </div>
+                    <div class="ml-4">
+                        <a href="{{ card.card_url }}" target="_blank" 
+                           class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                            View in Trello
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Errors (if any) -->
+        {% if results.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-xl p-8 mb-8">
+            <h2 class="text-2xl font-bold text-red-900 mb-6">⚠️ Errors Encountered</h2>
+            <div class="space-y-2">
+                {% for error in results.errors %}
+                <div class="flex items-start">
+                    <span class="text-red-500 mr-2">•</span>
+                    <span class="text-red-700">{{ error }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Auto-redirect notification -->
+        <div id="redirect-notice" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center">
+            <p class="text-blue-700">
+                <i class="bi bi-info-circle"></i>
+                Redirecting to Task Assignment form in <span id="countdown">15</span> seconds...
+            </p>
+            <button onclick="cancelRedirect()" class="text-blue-600 hover:text-blue-800 underline ml-2">
+                Stay on this page
+            </button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-center space-x-4 mb-8">
+            <a href="/tasks" 
+               class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg">
+                🎯 Assign More Tasks
+            </a>
+            <a href="/" 
+               class="border border-gray-300 text-gray-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                🏠 Back to Home
+            </a>
+            {% if results.trello_cards %}
+            <button onclick="openAllTrelloCards()" 
+                    class="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
+                📋 Open All Trello Cards
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Processing Details -->
+        <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Processing Details</h3>
+            {% if task.completion_details %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for detail in task.completion_details %}
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-600">{{ detail }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <p class="text-sm text-gray-500">
+                    Document processed: {{ results.document_length }} characters • 
+                    Processing time: {{ stats.duration }}s • 
+                    {% if stats.errors_count > 0 %}{{ stats.errors_count }} errors{% else %}No errors{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pass data to JavaScript safely -->
+<div id="trello-data" style="display: none;">
+    {% if results.trello_cards %}
+        {% for card in results.trello_cards %}
+            <div data-url="{{ card.card_url }}"></div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<script>
+let redirectTimer;
+let countdownTimer;
+
+function openAllTrelloCards() {
+    const trelloDataElements = document.querySelectorAll('#trello-data div[data-url]');
+    const trelloUrls = Array.from(trelloDataElements).map(el => el.getAttribute('data-url'));
+    
+    if (trelloUrls.length > 0) {
+        if (confirm(`This will open ${trelloUrls.length} Trello cards in new tabs. Continue?`)) {
+            trelloUrls.forEach((url, index) => {
+                setTimeout(() => {
+                    window.open(url, '_blank');
+                }, index * 200);
+            });
+        }
+    }
+}
+
+function startRedirectCountdown() {
+    let seconds = 15;
+    const countdownElement = document.getElementById('countdown');
+    
+    countdownTimer = setInterval(() => {
+        seconds--;
+        if (countdownElement) {
+            countdownElement.textContent = seconds;
+        }
+        
+        if (seconds <= 0) {
+            clearInterval(countdownTimer);
+            window.location.href = '/tasks';
+        }
+    }, 1000);
+    
+    redirectTimer = setTimeout(() => {
+        window.location.href = '/tasks';
+    }, 15000);
+}
+
+function cancelRedirect() {
+    if (redirectTimer) {
+        clearTimeout(redirectTimer);
+    }
+    if (countdownTimer) {
+        clearInterval(countdownTimer);
+    }
+    
+    const redirectNotice = document.getElementById('redirect-notice');
+    if (redirectNotice) {
+        redirectNotice.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    startRedirectCountdown();
+});
+</script>
+{% endblock %} 

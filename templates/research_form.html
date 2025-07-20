@@ -1,0 +1,1137 @@
+{% extends "base.html" %}
+
+{% block title %}Research Analysis - SoGoodDigital Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="glass-card section">
+    <div style="text-align: center; max-width: 600px; margin: 0 auto;">
+        <h1>AI Research Analysis</h1>
+        <p class="text-secondary">
+            Analyze Google documents with advanced AI insights and comprehensive research
+        </p>
+    </div>
+</div>
+
+<!-- Configuration Status -->
+{% if config_status %}
+<div class="glass-card section">
+    <h3 style="margin-bottom: 1.5rem;">System Configuration</h3>
+    <div class="status-grid">
+        <div class="status-item">
+            <div class="status-indicator {{ 'available' if config_status.openai_available else 'unavailable' }}">
+                <span class="status-dot"></span>
+                <span class="status-label">OpenAI</span>
+            </div>
+            <p class="status-description">
+                {{ 'GPT-4 Ready' if config_status.openai_available else 'Missing API Key' }}
+            </p>
+        </div>
+        <div class="status-item">
+            <div class="status-indicator {{ 'available' if config_status.bright_data_available else 'partial' }}">
+                <span class="status-dot"></span>
+                <span class="status-label">Bright Data</span>
+            </div>
+            <p class="status-description">
+                {{ 'CAPTCHA Bypass Active' if config_status.bright_data_available else 'Limited Search' }}
+            </p>
+        </div>
+        <div class="status-item">
+            <div class="status-indicator {{ 'available' if config_status.google_credentials_available else 'unavailable' }}">
+                <span class="status-dot"></span>
+                <span class="status-label">Google Docs</span>
+            </div>
+            <p class="status-description">
+                {{ 'API Connected' if config_status.google_credentials_available else 'Not Configured' }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Progress Overlay (initially hidden) -->
+<div id="progressOverlay" class="progress-overlay" style="display: none;">
+    <div class="progress-container">
+        <div class="progress-header">
+            <h2>Processing Your Research Analysis</h2>
+            <p class="text-secondary">Please wait while we analyze your document and generate your research report...</p>
+            <p class="text-tertiary">Task ID: <code id="taskIdDisplay"></code></p>
+        </div>
+        
+        <div class="progress-content">
+            <div class="progress-overview">
+                <div class="progress-percentage" id="progressPercentage">0%</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-message" id="progressMessage">Initializing...</div>
+            </div>
+            
+            <div class="progress-steps">
+                <div class="step-item" id="step-0">
+                    <span class="step-number">1</span>
+                    <span class="step-text">Extracting keywords from Google Doc</span>
+                    <span class="step-status" id="status-0">pending</span>
+                </div>
+                <div class="step-item" id="step-1">
+                    <span class="step-number">2</span>
+                    <span class="step-text">Searching Google Scholar</span>
+                    <span class="step-status" id="status-1">pending</span>
+                </div>
+                <div class="step-item" id="step-2">
+                    <span class="step-number">3</span>
+                    <span class="step-text">Filtering and ranking papers</span>
+                    <span class="step-status" id="status-2">pending</span>
+                </div>
+                <div class="step-item" id="step-3">
+                    <span class="step-number">4</span>
+                    <span class="step-text">Downloading PDFs</span>
+                    <span class="step-status" id="status-3">pending</span>
+                </div>
+                <div class="step-item" id="step-4">
+                    <span class="step-number">5</span>
+                    <span class="step-text">Analyzing content</span>
+                    <span class="step-status" id="status-4">pending</span>
+                </div>
+                <div class="step-item" id="step-5">
+                    <span class="step-number">6</span>
+                    <span class="step-text">Marketing relevance analysis</span>
+                    <span class="step-status" id="status-5">pending</span>
+                </div>
+                <div class="step-item" id="step-6">
+                    <span class="step-number">7</span>
+                    <span class="step-text">Generating document</span>
+                    <span class="step-status" id="status-6">pending</span>
+                </div>
+            </div>
+            
+            <div class="progress-stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="papersFound">0</span>
+                    <span class="stat-label">Papers Found</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="papersProcessed">0</span>
+                    <span class="stat-label">Papers Processed</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="pdfsDownloaded">0</span>
+                    <span class="stat-label">PDFs Downloaded</span>
+                </div>
+            </div>
+            
+            <div class="completion-message" id="completionMessage" style="display: none;">
+                <div class="success-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h3>Analysis Complete!</h3>
+                <p>Your research document is being downloaded automatically...</p>
+                <div class="download-info">
+                    <p><strong>Document:</strong> <span id="downloadFilename"></span></p>
+                    <p><strong>Size:</strong> Comprehensive research analysis with marketing insights</p>
+                </div>
+                <div class="manual-download" id="manualDownload" style="display: none;">
+                    <p>If download doesn't start automatically:</p>
+                    <a href="#" id="manualDownloadLink" class="btn btn-primary">
+                        <i class="bi bi-download"></i>
+                        Download Research Document
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Form (initially visible) -->
+<div class="glass-card section" id="mainForm">
+    <form method="POST" action="{{ url_for('research_analyze') }}" id="researchForm">
+        <h2 style="margin-bottom: 2rem;">Research Configuration</h2>
+
+        <!-- Google File ID Input -->
+        <div class="form-group">
+            <label for="google_file_id" class="form-label">Google File ID</label>
+            <div class="input-group">
+                <span class="input-prepend">
+                    <i class="bi bi-link-45deg"></i>
+                </span>
+                <input type="text" 
+                       id="google_file_id" 
+                       name="google_file_id" 
+                       class="form-control" 
+                       placeholder="Enter Google Doc or Sheet file ID"
+                       pattern="[a-zA-Z0-9_\-]+"
+                       title="Please enter a valid Google File ID"
+                       required>
+            </div>
+            <p class="form-help">
+                Find this in your Google Docs URL: docs.google.com/document/d/<strong>FILE_ID</strong>/edit<br>
+                <strong>Note:</strong> Uses service account authentication (no OAuth popups required).
+            </p>
+        </div>
+
+        <!-- Advanced Options -->
+        <div class="glass-card section" style="margin: 2rem 0; padding: 1.5rem;">
+            <h3 style="margin-bottom: 1.5rem;">Advanced Options</h3>
+            
+            <!-- Hidden inputs for default values -->
+            <input type="hidden" name="max_papers" value="10">
+            <input type="hidden" name="analysis_focus" value="marketing">
+
+            <!-- Output Format -->
+            <div class="form-group">
+                <label class="form-label">Output Format</label>
+                <div class="output-format-info">
+                    <div class="format-item">
+                        <i class="bi bi-file-earmark-word"></i>
+                        <span class="format-text">
+                            <strong>Word Document</strong>
+                            <small>Professional research report with auto-download</small>
+                        </span>
+                    </div>
+                </div>
+                <input type="hidden" name="output_formats" value="word">
+                <p class="form-help">
+                    <strong>Auto-download:</strong> Word documents will download automatically when complete. 
+                    Results page will not be shown to ensure seamless download experience.
+                </p>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="text-align: center; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
+                <i class="bi bi-rocket-takeoff"></i>
+                Start AI Research Analysis & Auto-Download
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Process Information -->
+<div class="glass-card section" id="processInfo">
+    <h3 style="margin-bottom: 1.5rem;">What Happens Next?</h3>
+    
+    <div class="process-steps">
+        <div class="process-step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h4>Content Extract</h4>
+                <p>Parse and extract content from your Google document</p>
+            </div>
+        </div>
+        <div class="process-step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h4>Keyword Analysis</h4>
+                <p>AI-powered keyword extraction and topic identification</p>
+            </div>
+        </div>
+        <div class="process-step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h4>Scholar Search</h4>
+                <p>Find relevant academic papers using Google Scholar</p>
+            </div>
+        </div>
+        <div class="process-step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+                <h4>PDF Processing</h4>
+                <p>Download and analyze research papers</p>
+            </div>
+        </div>
+        <div class="process-step">
+            <div class="step-number">5</div>
+            <div class="step-content">
+                <h4>AI Analysis</h4>
+                <p>Generate insights using GPT-4 intelligence</p>
+            </div>
+        </div>
+        <div class="process-step">
+            <div class="step-number">6</div>
+            <div class="step-content">
+                <h4>Auto-Download</h4>
+                <p>Automatically download your research document</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-grid" style="margin-top: 2rem;">
+        <div class="info-item">
+            <i class="bi bi-download"></i>
+            <span>Automatic file download in browser</span>
+        </div>
+        <div class="info-item">
+            <i class="bi bi-search"></i>
+            <span>Advanced paper discovery and filtering</span>
+        </div>
+        <div class="info-item">
+            <i class="bi bi-cpu"></i>
+            <span>GPT-4 powered analysis with business insights</span>
+        </div>
+        <div class="info-item">
+            <i class="bi bi-clock"></i>
+            <span>5-15 minutes processing time</span>
+        </div>
+    </div>
+</div>
+
+<!-- Help & Tips -->
+<div class="glass-card section" id="helpSection">
+    <h3 style="margin-bottom: 1.5rem;">Tips for Best Results</h3>
+    
+    <div class="tips-grid">
+        <div class="tip-section">
+            <h4>
+                <i class="bi bi-file-earmark-text"></i>
+                Google Document Setup
+            </h4>
+            <ul>
+                <li>Ensure file is publicly viewable or shared</li>
+                <li>Include clear research objectives in your document</li>
+                <li>Add specific topics or keywords you want to research</li>
+                <li>Provide context and background information</li>
+            </ul>
+        </div>
+        
+        <div class="tip-section">
+            <h4>
+                <i class="bi bi-lightbulb"></i>
+                Optimization Tips
+            </h4>
+            <ul>
+                <li>Use specific, academic terminology in your document</li>
+                <li>Include related keywords and phrases</li>
+                <li>Specify time periods if relevant to your research</li>
+                <li>Add industry or domain context for better results</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- File ID Help -->
+    <div class="glass-card section" style="margin-top: 1.5rem; padding: 1rem; background: var(--glass-primary);">
+        <h4 style="margin-bottom: 1rem;">
+            <i class="bi bi-question-circle"></i>
+            How to Find Your Google File ID
+        </h4>
+        <div class="file-id-steps">
+            <div class="step-item">
+                <span class="step-badge">1</span>
+                <span>Open your Google Doc/Sheet in your browser</span>
+            </div>
+            <div class="step-item">
+                <span class="step-badge">2</span>
+                <span>Look at the URL in your address bar</span>
+            </div>
+            <div class="step-item">
+                <span class="step-badge">3</span>
+                <span>Copy the long string after "/d/" and before "/edit"</span>
+            </div>
+        </div>
+        <div style="margin-top: 1rem; padding: 0.75rem; background: var(--glass-secondary); border-radius: 8px; border: 1px solid var(--glass-border);">
+            <p style="margin: 0; font-family: monospace; font-size: 0.85rem; color: var(--text-secondary);">
+                Example: docs.google.com/document/d/<span style="color: var(--accent-blue); font-weight: bold;">1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms</span>/edit
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentTaskId = null;
+    let progressInterval = null;
+    let autoDownloadEnabled = true;
+    
+    // Debug: Log initialization
+    console.log('[INIT] 🚀 Research form JavaScript initialized');
+    console.log('[INIT] 📥 Auto-download enabled:', autoDownloadEnabled);
+
+    // Form submission with progress tracking and auto-download
+    document.getElementById('researchForm').addEventListener('submit', function(e) {
+        console.log('[FORM] 📝 Form submission intercepted - preventing default behavior');
+        e.preventDefault(); // Prevent default form submission
+        
+        submitForm(); // Submit form
+    });
+
+
+
+    function submitForm() {
+        const submitBtn = document.getElementById('submitBtn');
+        const googleFileId = document.getElementById('google_file_id').value.trim();
+        
+        console.log(`[FORM] 📄 Google File ID: ${googleFileId}`);
+        console.log('[FORM] 🎯 Submit button:', submitBtn);
+        
+        // Validation for Google File ID
+        if (!googleFileId) {
+            showValidationError('Please enter a Google File ID');
+            return;
+        }
+        
+        // Google File ID validation
+        const fileIdPattern = /^[a-zA-Z0-9_\-]+$/;
+        if (!fileIdPattern.test(googleFileId) || googleFileId.length < 10) {
+            showValidationError('Please enter a valid Google File ID');
+            return;
+        }
+        
+        // Show loading state on button
+        submitBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Starting Analysis...';
+        submitBtn.disabled = true;
+        
+        // Get form element
+        const form = document.getElementById('researchForm');
+        const formData = new FormData(form);
+        
+        console.log('[FORM] 📤 Submitting form via AJAX to:', form.action);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            console.log(`[FORM] 📥 Response received: ${response.status} ${response.statusText}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('[FORM] 📋 Response data:', data);
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            if (!data.task_id) {
+                throw new Error('No task ID received from server');
+            }
+            
+            // Start progress tracking
+            currentTaskId = data.task_id;
+            console.log(`[FORM] 🆔 Task ID assigned: ${currentTaskId}`);
+            console.log(`[FORM] ⏱️ Estimated time: ${data.estimated_time || 'Unknown'}`);
+            
+            startProgressTracking(data.task_id);
+            
+        })
+        .catch(error => {
+            console.error('[FORM] ❌ Form submission error:', error);
+            showValidationError('Failed to start analysis: ' + error.message);
+            
+            // Reset button
+            submitBtn.innerHTML = '<i class="bi bi-rocket-takeoff"></i> Start AI Research Analysis & Auto-Download';
+            submitBtn.disabled = false;
+        });
+    }
+
+    function startProgressTracking(taskId) {
+        // Hide main form and show progress overlay
+        document.getElementById('mainForm').style.display = 'none';
+        document.getElementById('processInfo').style.display = 'none';
+        document.getElementById('helpSection').style.display = 'none';
+        document.getElementById('progressOverlay').style.display = 'block';
+        
+        // Set task ID display
+        document.getElementById('taskIdDisplay').textContent = taskId;
+        
+        // Start polling for progress
+        progressInterval = setInterval(() => {
+            updateProgress(taskId);
+        }, 3000); // Poll every 3 seconds
+        
+        // Initial update
+        updateProgress(taskId);
+    }
+
+    function updateProgress(taskId) {
+        console.log(`[PROGRESS] Polling status for task: ${taskId}`);
+        
+        fetch(`/api/research/status/${taskId}`)
+            .then(response => {
+                console.log(`[PROGRESS] Response status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('[PROGRESS] Received data:', data);
+                
+                if (data.error) {
+                    console.error('[PROGRESS] API returned error:', data.error);
+                    throw new Error(data.error);
+                }
+                
+                // Update progress bar
+                const progress = data.progress || 0;
+                document.getElementById('progressPercentage').textContent = progress + '%';
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressMessage').textContent = data.message || 'Processing...';
+                
+                console.log(`[PROGRESS] Updated progress: ${progress}%, status: ${data.status}, step: ${data.current_step}`);
+                
+                // Update step statuses
+                const currentStep = data.current_step || 0;
+                for (let i = 0; i < 7; i++) {
+                    const stepElement = document.getElementById(`step-${i}`);
+                    const statusElement = document.getElementById(`status-${i}`);
+                    
+                    if (stepElement && statusElement) {
+                        if (i < currentStep) {
+                            stepElement.classList.remove('active', 'pending');
+                            stepElement.classList.add('completed');
+                            statusElement.textContent = 'completed';
+                        } else if (i === currentStep) {
+                            stepElement.classList.remove('completed', 'pending');
+                            stepElement.classList.add('active');
+                            statusElement.textContent = 'in progress';
+                        } else {
+                            stepElement.classList.remove('completed', 'active');
+                            stepElement.classList.add('pending');
+                            statusElement.textContent = 'pending';
+                        }
+                    }
+                }
+                
+                // Update statistics with null checks
+                const papersFoundEl = document.getElementById('papersFound');
+                const papersProcessedEl = document.getElementById('papersProcessed');
+                const pdfsDownloadedEl = document.getElementById('pdfsDownloaded');
+                
+                if (papersFoundEl && data.papers_found !== undefined) {
+                    papersFoundEl.textContent = data.papers_found;
+                }
+                if (papersProcessedEl && data.papers_processed !== undefined) {
+                    papersProcessedEl.textContent = data.papers_processed;
+                }
+                if (pdfsDownloadedEl && data.pdfs_downloaded !== undefined) {
+                    pdfsDownloadedEl.textContent = data.pdfs_downloaded;
+                }
+                
+                // Check if completed - ENHANCED DETECTION
+                console.log(`[COMPLETION-CHECK] Status: '${data.status}', Progress: ${data.progress}`);
+                
+                if (data.status === 'completed' || (data.progress >= 100 && data.current_step >= 7)) {
+                    console.log('[COMPLETION] ✅ Task completed! Clearing interval and handling completion...');
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                    
+                    // Add delay to ensure all UI updates complete
+                    setTimeout(() => {
+                        handleCompletion(data);
+                    }, 1000);
+                    
+                } else if (data.status === 'error') {
+                    console.log('[ERROR] ❌ Task failed! Clearing interval and handling error...');
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                    handleError(data.message);
+                } else {
+                    console.log(`[PROGRESS] 🔄 Task still running... (${data.status})`);
+                }
+                
+            })
+            .catch(error => {
+                console.error('[PROGRESS] ❌ Progress update error:', error);
+                
+                // Don't stop polling on network errors, but stop on critical errors
+                const errorMsg = error.message || error.toString();
+                if (errorMsg.includes('404') || errorMsg.includes('Task not found')) {
+                    console.error('[PROGRESS] 🛑 Critical error - stopping progress polling');
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                    handleError('Task not found - may have expired');
+                }
+                // Continue polling for other errors (network issues, etc.)
+            });
+    }
+
+    function handleCompletion(data) {
+        console.log('[COMPLETION] 🎉 Handling task completion...', data);
+        
+        try {
+            // Show completion message
+            const progressContent = document.querySelector('.progress-content');
+            const completionMessage = document.getElementById('completionMessage');
+            
+            if (progressContent) {
+                progressContent.style.display = 'none';
+                console.log('[COMPLETION] ✅ Hidden progress content');
+            } else {
+                console.warn('[COMPLETION] ⚠️ Progress content element not found');
+            }
+            
+            if (completionMessage) {
+                completionMessage.style.display = 'block';
+                console.log('[COMPLETION] ✅ Shown completion message');
+            } else {
+                console.warn('[COMPLETION] ⚠️ Completion message element not found');
+            }
+            
+            // Find Word document for auto-download
+            const results = data.results || {};
+            const documentsCreated = results.documents_created || {};
+            
+            console.log('[COMPLETION] 📄 Documents created:', documentsCreated);
+            console.log('[COMPLETION] 🔽 Auto-download enabled:', autoDownloadEnabled);
+            
+            if (documentsCreated.word && autoDownloadEnabled) {
+                const filename = documentsCreated.word.filename;
+                const downloadUrl = `/download/${filename}`;
+                
+                console.log(`[COMPLETION] 📁 Found Word document: ${filename}`);
+                console.log(`[COMPLETION] 🔗 Download URL: ${downloadUrl}`);
+                
+                // Update completion message
+                const downloadFilenameEl = document.getElementById('downloadFilename');
+                if (downloadFilenameEl) {
+                    downloadFilenameEl.textContent = filename;
+                    console.log('[COMPLETION] ✅ Updated filename in completion message');
+                } else {
+                    console.warn('[COMPLETION] ⚠️ Download filename element not found');
+                }
+                
+                // Auto-download the file
+                console.log('[COMPLETION] ⏰ Scheduling auto-download in 2 seconds...');
+                setTimeout(() => {
+                    console.log('[COMPLETION] 🚀 Triggering auto-download now!');
+                    triggerDownload(downloadUrl, filename);
+                }, 2000); // Wait 2 seconds to show completion message
+                
+                // Setup manual download as backup
+                const manualDownloadLink = document.getElementById('manualDownloadLink');
+                if (manualDownloadLink) {
+                    manualDownloadLink.href = downloadUrl;
+                    manualDownloadLink.download = filename;
+                    console.log('[COMPLETION] ✅ Setup manual download link as backup');
+                } else {
+                    console.warn('[COMPLETION] ⚠️ Manual download link element not found');
+                }
+                
+                // Show manual download option after 10 seconds
+                setTimeout(() => {
+                    const manualDownloadEl = document.getElementById('manualDownload');
+                    if (manualDownloadEl) {
+                        manualDownloadEl.style.display = 'block';
+                        console.log('[COMPLETION] ✅ Shown manual download option');
+                    }
+                }, 10000);
+                
+            } else {
+                console.warn('[COMPLETION] ⚠️ No Word document found or auto-download disabled');
+                console.log('[COMPLETION] 📄 Documents available:', Object.keys(documentsCreated));
+                
+                // No Word document or auto-download disabled
+                const downloadFilenameEl = document.getElementById('downloadFilename');
+                const manualDownloadEl = document.getElementById('manualDownload');
+                
+                if (downloadFilenameEl) {
+                    downloadFilenameEl.textContent = 'Document generation may have failed';
+                }
+                if (manualDownloadEl) {
+                    manualDownloadEl.style.display = 'block';
+                }
+                
+                // Check for other document types
+                if (documentsCreated.google_doc) {
+                    console.log('[COMPLETION] 📝 Found Google Doc, setting up alternative download');
+                    const googleDocUrl = documentsCreated.google_doc.document_url;
+                    const manualDownloadLink = document.getElementById('manualDownloadLink');
+                    if (manualDownloadLink) {
+                        manualDownloadLink.href = googleDocUrl;
+                        manualDownloadLink.target = '_blank';
+                        manualDownloadLink.innerHTML = '<i class="bi bi-google"></i> Open Google Document';
+                        console.log('[COMPLETION] ✅ Setup Google Doc link');
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error('[COMPLETION] ❌ Error in handleCompletion:', error);
+            
+            // Fallback: try to show some completion message
+            try {
+                const completionMessage = document.getElementById('completionMessage');
+                if (completionMessage) {
+                    completionMessage.style.display = 'block';
+                    completionMessage.innerHTML = `
+                        <div class="success-icon"><i class="bi bi-check-circle-fill"></i></div>
+                        <h3>Analysis Complete!</h3>
+                        <p>There was an issue with auto-download. Please check the console or try refreshing.</p>
+                        <div class="manual-download" style="display: block;">
+                            <p>If you have a download URL, click here:</p>
+                            <button onclick="window.location.reload()" class="btn btn-primary">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh Page
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (fallbackError) {
+                console.error('[COMPLETION] ❌ Fallback completion display also failed:', fallbackError);
+            }
+        }
+    }
+
+    function triggerDownload(url, filename) {
+        console.log(`[DOWNLOAD] 🎯 Attempting to download: ${filename} from ${url}`);
+        
+        try {
+            // Method 1: Create a temporary link element and trigger download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            
+            // Add to DOM
+            document.body.appendChild(link);
+            console.log('[DOWNLOAD] ✅ Added download link to DOM');
+            
+            // Trigger click
+            link.click();
+            console.log('[DOWNLOAD] ✅ Triggered download click');
+            
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(link);
+                console.log('[DOWNLOAD] ✅ Cleaned up download link');
+            }, 1000);
+            
+            console.log(`[DOWNLOAD] 🎉 Auto-download triggered successfully for: ${filename}`);
+            
+            // Show success message
+            setTimeout(() => {
+                const progressMessage = document.getElementById('progressMessage');
+                if (progressMessage) {
+                    progressMessage.innerHTML = `<span style="color: var(--accent-green);">✅ Download started: ${filename}</span>`;
+                }
+            }, 500);
+            
+        } catch (error) {
+            console.error('[DOWNLOAD] ❌ Auto-download failed:', error);
+            
+            // Fallback: try window.open
+            try {
+                console.log('[DOWNLOAD] 🔄 Trying fallback method: window.open');
+                window.open(url, '_blank');
+                console.log('[DOWNLOAD] ✅ Fallback download initiated');
+            } catch (fallbackError) {
+                console.error('[DOWNLOAD] ❌ Fallback download also failed:', fallbackError);
+                
+                // Last resort: show download URL to user
+                const progressMessage = document.getElementById('progressMessage');
+                if (progressMessage) {
+                    progressMessage.innerHTML = `
+                        <span style="color: var(--accent-rose);">❌ Auto-download failed.</span><br>
+                        <a href="${url}" download="${filename}" class="btn btn-primary" style="margin-top: 10px;">
+                            <i class="bi bi-download"></i> Click to Download Manually
+                        </a>
+                    `;
+                }
+            }
+        }
+    }
+
+    function handleError(errorMessage) {
+        // Show error in progress overlay
+        document.getElementById('progressMessage').innerHTML = 
+            `<span style="color: var(--accent-rose);">Error: ${errorMessage}</span>`;
+        
+        // Reset form after 5 seconds
+        setTimeout(() => {
+            resetForm();
+        }, 5000);
+    }
+
+    function resetForm() {
+        // Hide progress overlay and show form
+        document.getElementById('progressOverlay').style.display = 'none';
+        document.getElementById('mainForm').style.display = 'block';
+        document.getElementById('processInfo').style.display = 'block';
+        document.getElementById('helpSection').style.display = 'block';
+        
+        // Reset button
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '<i class="bi bi-rocket-takeoff"></i> Start AI Research Analysis & Auto-Download';
+        submitBtn.disabled = false;
+        
+        // Clear intervals
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+        
+        currentTaskId = null;
+    }
+
+    function showValidationError(message) {
+        // Create error alert if it doesn't exist
+        let errorAlert = document.getElementById('validation-error');
+        if (!errorAlert) {
+            errorAlert = document.createElement('div');
+            errorAlert.id = 'validation-error';
+            errorAlert.className = 'alert alert-error';
+            errorAlert.style.marginBottom = '1rem';
+            document.querySelector('.glass-card form').prepend(errorAlert);
+        }
+        
+        errorAlert.textContent = message;
+        errorAlert.style.display = 'block';
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            errorAlert.style.display = 'none';
+        }, 5000);
+    }
+
+    // Handle page unload
+    window.addEventListener('beforeunload', function() {
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
+    });
+
+    // Handle visibility change
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && progressInterval) {
+            clearInterval(progressInterval);
+        } else if (!document.hidden && currentTaskId && progressInterval === null) {
+            progressInterval = setInterval(() => {
+                updateProgress(currentTaskId);
+            }, 3000);
+        }
+    });
+
+    // DOM Ready: Verify all required elements are present
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('[DOM] 🏗️ DOM loaded - verifying required elements...');
+        
+        const requiredElements = [
+            'researchForm',
+            'submitBtn',
+            'progressOverlay',
+            'progressPercentage',
+            'progressFill',
+            'progressMessage',
+            'completionMessage',
+            'downloadFilename',
+            'manualDownloadLink',
+            'manualDownload'
+        ];
+        
+        const missingElements = [];
+        requiredElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (!element) {
+                missingElements.push(id);
+            }
+        });
+        
+        if (missingElements.length > 0) {
+            console.error('[DOM] ❌ Missing required elements:', missingElements);
+            console.error('[DOM] 🚨 Auto-download may not work properly!');
+        } else {
+            console.log('[DOM] ✅ All required elements found');
+        }
+        
+        // Test step elements
+        for (let i = 0; i < 7; i++) {
+            const stepEl = document.getElementById(`step-${i}`);
+            const statusEl = document.getElementById(`status-${i}`);
+            if (!stepEl || !statusEl) {
+                console.warn(`[DOM] ⚠️ Missing step elements: step-${i} or status-${i}`);
+            }
+        }
+        
+        console.log('[DOM] ✅ Research form setup complete and ready for submissions');
+    });
+</script>
+
+<style>
+/* Progress Overlay Styles */
+.progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+}
+
+.progress-container {
+    background: var(--glass-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 800px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.progress-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.progress-header h2 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.progress-overview {
+    margin-bottom: 2rem;
+}
+
+.progress-percentage {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent-blue);
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.progress-bar {
+    background: var(--glass-primary);
+    border-radius: 10px;
+    height: 12px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.progress-fill {
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.progress-message {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+.progress-steps {
+    margin-bottom: 2rem;
+}
+
+.progress-steps .step-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background: var(--glass-primary);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+}
+
+.progress-steps .step-item.completed {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.progress-steps .step-item.active {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.progress-steps .step-item.pending {
+    opacity: 0.6;
+}
+
+.progress-steps .step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.progress-steps .step-text {
+    flex: 1;
+    font-weight: 500;
+}
+
+.progress-steps .step-status {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    background: var(--glass-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.progress-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.progress-stats .stat-item {
+    text-align: center;
+    background: var(--glass-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.progress-stats .stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent-blue);
+    margin-bottom: 0.25rem;
+}
+
+.progress-stats .stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.completion-message {
+    text-align: center;
+    padding: 2rem;
+}
+
+.success-icon {
+    font-size: 3rem;
+    color: var(--accent-green);
+    margin-bottom: 1rem;
+}
+
+.completion-message h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.download-info {
+    background: var(--glass-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.download-info p {
+    margin: 0.5rem 0;
+}
+
+.manual-download {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.file-id-steps {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.step-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--accent-blue);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+/* Animation for spinning icon */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+
+
+/* Output format info styles */
+.output-format-info {
+    background: var(--glass-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.format-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.format-item i {
+    font-size: 1.5rem;
+    color: var(--accent-blue);
+}
+
+.format-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.format-text strong {
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.format-text small {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .progress-container {
+        width: 95%;
+        padding: 1rem;
+    }
+    
+    .progress-stats {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
+    
+    .btn-large {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+{% endblock %} 

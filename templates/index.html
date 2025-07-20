@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="glass-card section">
+    <div style="text-align: center; max-width: 600px; margin: 0 auto;">
+        <h1>SoGoodDigital Platform</h1>
+        <p class="text-secondary">
+            Advanced Research Analysis & Intelligent Task Assignment powered by AI
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
+            <a href="{{ url_for('research_form') }}" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Start Research Analysis
+            </a>
+            <a href="{{ url_for('task_assignment_form') }}" class="btn btn-secondary">
+                <i class="bi bi-diagram-3"></i>
+                Assign Tasks
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- System Status -->
+<div class="grid grid-2 section">
+    <!-- Research System -->
+    <div class="floating-panel">
+        <h3>🔬 Research System</h3>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">Google Scholar Agent</span>
+                <span class="status-indicator {{ 'available' if services.research_agent_available else 'unavailable' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Ready' if services.research_agent_available else 'Unavailable' }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">OpenAI Integration</span>
+                <span class="status-indicator {{ 'available' if research_config.openai_available else 'unavailable' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Connected' if research_config.openai_available else 'Not Configured' }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">Bright Data CAPTCHA</span>
+                <span class="status-indicator {{ 'available' if research_config.bright_data_available else 'partial' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Active' if research_config.bright_data_available else 'Limited' }}
+                </span>
+            </div>
+        </div>
+        
+        {% if services.research_agent_available %}
+            <div style="margin-top: 1.5rem;">
+                <a href="{{ url_for('research_form') }}" class="btn btn-primary" style="width: 100%;">
+                    <i class="bi bi-search"></i>
+                    Launch Research Agent
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Task Assignment System -->
+    <div class="floating-panel">
+        <h3>📋 Task Assignment</h3>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">Task Assigner Agent</span>
+                <span class="status-indicator {{ 'available' if services.task_assignment_available else 'unavailable' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Ready' if services.task_assignment_available else 'Unavailable' }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">Google Docs</span>
+                <span class="status-indicator {{ 'available' if task_config.google_docs_available else 'unavailable' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Connected' if task_config.google_docs_available else 'Not Configured' }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">Trello Integration</span>
+                <span class="status-indicator {{ 'available' if task_config.trello_available else 'partial' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Active' if task_config.trello_available else 'Limited' }}
+                </span>
+            </div>
+        </div>
+        
+        {% if services.task_assignment_available %}
+            <div style="margin-top: 1.5rem;">
+                <a href="{{ url_for('task_assignment_form') }}" class="btn btn-primary" style="width: 100%;">
+                    <i class="bi bi-diagram-3"></i>
+                    Launch Task Assigner
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Features Overview -->
+<div class="glass-card section">
+    <h2>Platform Capabilities</h2>
+    
+    <div class="grid grid-3">
+        <div class="feature-item">
+            <div class="feature-icon">
+                <i class="bi bi-search"></i>
+            </div>
+            <h4>Research Analysis</h4>
+            <p class="text-secondary">
+                Advanced Google Scholar research with AI-powered analysis and insights
+            </p>
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-icon">
+                <i class="bi bi-diagram-3"></i>
+            </div>
+            <h4>Task Assignment</h4>
+            <p class="text-secondary">
+                Intelligent task distribution from Google Docs to Trello with AI optimization
+            </p>
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-icon">
+                <i class="bi bi-graph-up"></i>
+            </div>
+            <h4>Progress Tracking</h4>
+            <p class="text-secondary">
+                Real-time monitoring and analytics for all research and task operations
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- System Configuration Status -->
+{% if research_config or task_config %}
+<div class="glass-card section" id="status">
+    <h2>System Configuration</h2>
+    
+    <div class="grid grid-2">
+        {% if research_config %}
+        <div class="config-section">
+            <h4>Research Agent Configuration</h4>
+            <div class="config-list">
+                <div class="config-item">
+                    <strong>OpenAI:</strong> 
+                    <span class="{{ 'text-success' if research_config.openai_available else 'text-danger' }}">
+                        {{ '✅ Configured' if research_config.openai_available else '❌ Missing API Key' }}
+                    </span>
+                </div>
+                <div class="config-item">
+                    <strong>Bright Data:</strong> 
+                    <span class="{{ 'text-success' if research_config.bright_data_available else 'text-warning' }}">
+                        {{ '✅ Active' if research_config.bright_data_available else '⚠️ Limited Mode' }}
+                    </span>
+                </div>
+                <div class="config-item">
+                    <strong>Google Credentials:</strong> 
+                    <span class="{{ 'text-success' if research_config.google_credentials_available else 'text-danger' }}">
+                        {{ '✅ Valid' if research_config.google_credentials_available else '❌ Missing' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if task_config %}
+        <div class="config-section">
+            <h4>Task Assignment Configuration</h4>
+            <div class="config-list">
+                <div class="config-item">
+                    <strong>Google Docs:</strong> 
+                    <span class="{{ 'text-success' if task_config.google_docs_available else 'text-danger' }}">
+                        {{ '✅ Connected' if task_config.google_docs_available else '❌ Not Configured' }}
+                    </span>
+                </div>
+                <div class="config-item">
+                    <strong>Trello:</strong> 
+                    <span class="{{ 'text-success' if task_config.trello_available else 'text-warning' }}">
+                        {{ '✅ Active' if task_config.trello_available else '⚠️ Limited Mode' }}
+                    </span>
+                </div>
+                <div class="config-item">
+                    <strong>Team Data:</strong> 
+                    <span class="{{ 'text-success' if task_config.team_available else 'text-danger' }}">
+                        {{ '✅ Ready' if task_config.team_available else '❌ Missing' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+/* Component-specific styles for better organization */
+.status-item {
+    margin-bottom: 1rem;
+}
+
+.status-item:last-child {
+    margin-bottom: 0;
+}
+
+.status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-label {
+    font-weight: 500;
+    color: var(--mono-200);
+}
+
+.feature-item {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.feature-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.15);
+    border-radius: 12px;
+}
+
+.feature-icon i {
+    font-size: 1.5rem;
+    color: rgba(59, 130, 246, 0.8);
+}
+
+.config-section h4 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.config-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.config-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.text-success { color: rgba(34, 197, 94, 1); }
+.text-danger { color: rgba(239, 68, 68, 1); }
+.text-warning { color: rgba(245, 158, 11, 1); }
+
+@media (max-width: 768px) {
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .feature-item {
+        padding: 1rem;
+    }
+}
+</style>
+{% endblock %} 

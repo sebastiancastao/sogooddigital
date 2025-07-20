@@ -1,0 +1,35 @@
+openai>=1.0.0
+python-docx>=0.8.11
+google-auth>=2.17.0
+google-auth-oauthlib>=0.8.0
+google-auth-httplib2>=0.1.0
+google-api-python-client>=2.88.0
+scholarly>=1.7.11
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+nltk>=3.8.0
+spacy>=3.7.0
+textblob>=0.17.1
+python-dotenv>=1.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+tqdm>=4.65.0
+PyPDF2>=3.0.0
+pdfplumber>=0.9.0
+PyMuPDF>=1.23.0
+langchain>=0.1.0
+langchain-openai>=0.0.5
+python-Levenshtein>=0.20.0
+fuzzywuzzy>=0.18.0
+
+# CAPTCHA solving services
+2captcha-python>=1.1.3
+selenium>=4.15.0
+webdriver-manager>=4.0.0
+
+# OCR for simple CAPTCHAs (fallback)
+pytesseract>=0.3.10
+opencv-python>=4.8.0 

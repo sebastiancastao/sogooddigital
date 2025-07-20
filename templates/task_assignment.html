@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Task Assignment - SoGood Digital{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                🎯 Smart Task Assignment
+            </h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Extract actionable tasks from Google Docs and automatically assign them to team members based on their expertise.
+            </p>
+        </div>
+
+        <!-- Configuration Status -->
+        <div id="config-status" class="mb-8 p-4 rounded-lg border hidden">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Configuration Status</h3>
+                <button onclick="checkConfiguration()" class="text-blue-600 hover:text-blue-800">
+                    🔄 Refresh
+                </button>
+            </div>
+            <div id="config-details" class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Configuration items will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <form id="taskAssignmentForm" class="space-y-6">
+                <!-- Google Doc Input -->
+                <div>
+                    <label for="google_file_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        📄 Google Document ID *
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="google_file_id" 
+                            name="google_file_id" 
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+                        >
+                        <div class="absolute right-3 top-3 text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">
+                        💡 Extract the document ID from the Google Docs URL: 
+                        <code class="bg-gray-100 px-1 rounded">docs.google.com/document/d/<strong>DOCUMENT_ID</strong>/edit</code>
+                    </p>
+                </div>
+
+                <!-- Team Information -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">👥 Team Assignment Logic</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span class="text-purple-600 font-semibold text-sm">R</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Rana</h4>
+                                    <p class="text-sm text-gray-600">Social media, campaigns, graphic design</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span class="text-green-600 font-semibold text-sm">S</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Scott</h4>
+                                    <p class="text-sm text-gray-600">Content strategy, blogs, PR</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span class="text-blue-600 font-semibold text-sm">S</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Sebastian</h4>
+                                    <p class="text-sm text-gray-600">SEO, analytics, research</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span class="text-yellow-600 font-semibold text-sm">I</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Ilia</h4>
+                                    <p class="text-sm text-gray-600">Strategy, oversight, coordination</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-center">
+                    <button 
+                        type="submit" 
+                        id="submitBtn"
+                        class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                    >
+                        <span id="submitText">🚀 Assign Tasks</span>
+                        <span id="submitLoader" class="hidden">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Features Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg p-6 shadow-md">
+                <div class="text-3xl mb-4">🤖</div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">AI-Powered Extraction</h3>
+                <p class="text-gray-600">Uses OpenAI GPT-4o to intelligently identify and structure actionable tasks from document content.</p>
+            </div>
+            <div class="bg-white rounded-lg p-6 shadow-md">
+                <div class="text-3xl mb-4">🎯</div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Smart Assignment</h3>
+                <p class="text-gray-600">Automatically assigns tasks to team members based on keyword matching and expertise areas.</p>
+            </div>
+            <div class="bg-white rounded-lg p-6 shadow-md">
+                <div class="text-3xl mb-4">📋</div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Trello Integration</h3>
+                <p class="text-gray-600">Creates organized Trello cards with detailed task information and automatic team member assignment.</p>
+            </div>
+        </div>
+
+        <!-- Requirements Section -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-yellow-800 mb-3">📋 Requirements</h3>
+            <ul class="space-y-2 text-yellow-700">
+                <li class="flex items-center">
+                    <span class="mr-2">✅</span>
+                    Google Docs API access with proper credentials
+                </li>
+                <li class="flex items-center">
+                    <span class="mr-2">✅</span>
+                    OpenAI API key for task extraction
+                </li>
+                <li class="flex items-center">
+                    <span class="mr-2">✅</span>
+                    Trello API credentials for card creation (optional but recommended)
+                </li>
+                <li class="flex items-center">
+                    <span class="mr-2">✅</span>
+                    Google Document must be accessible with your credentials
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('taskAssignmentForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const submitLoader = document.getElementById('submitLoader');
+    
+    // Check configuration on page load
+    checkConfiguration();
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const googleFileId = formData.get('google_file_id').trim();
+        
+        if (!googleFileId) {
+            alert('Please enter a Google Document ID');
+            return;
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.classList.add('hidden');
+        submitLoader.classList.remove('hidden');
+        
+        // Submit the form
+        fetch('/tasks/assign', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Redirect to progress page
+            window.location.href = `/tasks/progress/${data.task_id}`;
+        })
+        .catch(error => {
+            alert(`Error: ${error.message}`);
+            
+            // Reset button state
+            submitBtn.disabled = false;
+            submitText.classList.remove('hidden');
+            submitLoader.classList.add('hidden');
+        });
+    });
+});
+
+function checkConfiguration() {
+    fetch('/api/tasks/config')
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById('config-status');
+            const detailsDiv = document.getElementById('config-details');
+            
+            statusDiv.classList.remove('hidden');
+            
+            if (data.ready) {
+                statusDiv.className = 'mb-8 p-4 rounded-lg border border-green-200 bg-green-50';
+            } else {
+                statusDiv.className = 'mb-8 p-4 rounded-lg border border-yellow-200 bg-yellow-50';
+            }
+            
+            const configs = data.configuration || {};
+            detailsDiv.innerHTML = Object.entries(configs).map(([key, value]) => {
+                const icon = value ? '✅' : '❌';
+                const colorClass = value ? 'text-green-700' : 'text-red-700';
+                const bgClass = value ? 'bg-green-100' : 'bg-red-100';
+                
+                return `
+                    <div class="${bgClass} rounded-lg p-3">
+                        <span class="${colorClass} font-medium">
+                            ${icon} ${key.charAt(0).toUpperCase() + key.slice(1)}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+            
+            if (!data.ready && data.missing) {
+                detailsDiv.innerHTML += `
+                    <div class="col-span-full mt-3 p-3 bg-yellow-100 rounded-lg">
+                        <p class="text-yellow-800 font-medium">Missing configuration:</p>
+                        <p class="text-yellow-700 text-sm">${data.missing.join(', ')}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking configuration:', error);
+        });
+}
+</script>
+{% endblock %} 
