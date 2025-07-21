@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}AI Content Generator{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-5">
+    <!-- Header Section -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8 text-center">
+            <div class="glass-card mb-4">
+                <div class="card-body p-5">
+                    <div class="icon-wrapper mb-4">
+                        <div class="icon-layers">
+                            <i class="bi bi-magic layer-1 text-primary"></i>
+                            <i class="bi bi-cpu layer-2 text-accent"></i>
+                            <i class="bi bi-lightning-charge layer-3 text-warning"></i>
+                        </div>
+                    </div>
+                    <h1 class="display-4 fw-bold mb-3 gradient-text">AI Content Generator</h1>
+                    <p class="lead text-muted mb-4">
+                        Transform research insights into compelling content. Generate blog posts, articles, social media content, and more using AI-powered research analysis.
+                    </p>
+                    <div class="feature-badges">
+                        <span class="badge bg-primary-subtle text-primary">Research-Driven</span>
+                        <span class="badge bg-success-subtle text-success">AI-Powered</span>
+                        <span class="badge bg-info-subtle text-info">Multiple Formats</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Generation Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="glass-card">
+                <div class="card-body p-5">
+                    <form id="contentGenerationForm" class="needs-validation" novalidate>
+                        <div class="row">
+                            <!-- Google Doc Input -->
+                            <div class="col-12 mb-4">
+                                <div class="form-floating">
+                                    <input type="text" 
+                                           class="form-control glass-input" 
+                                           id="google_file_id" 
+                                           name="google_file_id" 
+                                           placeholder="Google Doc ID or URL"
+                                           required>
+                                    <label for="google_file_id">
+                                        <i class="bi bi-file-earmark-text me-2"></i>Google Doc ID or URL
+                                    </label>
+                                    <div class="invalid-feedback">
+                                        Please provide a valid Google Doc ID or URL.
+                                    </div>
+                                </div>
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Enter the Google Doc ID or full URL. The document should be shared with access permissions.
+                                </div>
+                            </div>
+
+                            <!-- Content Type -->
+                            <div class="col-md-6 mb-4">
+                                <label for="content_type" class="form-label fw-semibold">
+                                    <i class="bi bi-file-richtext me-2"></i>Content Type
+                                </label>
+                                <select class="form-select glass-input" id="content_type" name="content_type" required>
+                                    <option value="blog_post" selected>Blog Post</option>
+                                    <option value="article">In-depth Article</option>
+                                    <option value="social_media">Social Media Content</option>
+                                    <option value="marketing_copy">Marketing Copy</option>
+                                    <option value="whitepaper">Whitepaper</option>
+                                    <option value="email_campaign">Email Campaign</option>
+                                    <option value="press_release">Press Release</option>
+                                    <option value="case_study">Case Study</option>
+                                </select>
+                            </div>
+
+                            <!-- Content Tone -->
+                            <div class="col-md-6 mb-4">
+                                <label for="content_tone" class="form-label fw-semibold">
+                                    <i class="bi bi-palette me-2"></i>Tone & Style
+                                </label>
+                                <select class="form-select glass-input" id="content_tone" name="content_tone" required>
+                                    <option value="professional" selected>Professional</option>
+                                    <option value="casual">Casual & Friendly</option>
+                                    <option value="authoritative">Authoritative</option>
+                                    <option value="conversational">Conversational</option>
+                                    <option value="technical">Technical</option>
+                                    <option value="creative">Creative</option>
+                                    <option value="formal">Formal</option>
+                                    <option value="enthusiastic">Enthusiastic</option>
+                                </select>
+                            </div>
+
+                            <!-- Content Length -->
+                            <div class="col-md-6 mb-4">
+                                <label for="content_length" class="form-label fw-semibold">
+                                    <i class="bi bi-rulers me-2"></i>Content Length
+                                </label>
+                                <select class="form-select glass-input" id="content_length" name="content_length" required>
+                                    <option value="short">Short (800-1200 words)</option>
+                                    <option value="medium" selected>Medium (1200-1800 words)</option>
+                                    <option value="long">Long (1800+ words)</option>
+                                </select>
+                            </div>
+
+                            <!-- Target Audience -->
+                            <div class="col-md-6 mb-4">
+                                <label for="target_audience" class="form-label fw-semibold">
+                                    <i class="bi bi-people me-2"></i>Target Audience
+                                </label>
+                                <select class="form-select glass-input" id="target_audience" name="target_audience" required>
+                                    <option value="general" selected>General Audience</option>
+                                    <option value="business_professionals">Business Professionals</option>
+                                    <option value="marketers">Marketers</option>
+                                    <option value="executives">Executives</option>
+                                    <option value="academics">Academics</option>
+                                    <option value="technical_experts">Technical Experts</option>
+                                    <option value="consumers">Consumers</option>
+                                    <option value="industry_specialists">Industry Specialists</option>
+                                </select>
+                            </div>
+
+                            <!-- Additional Instructions -->
+                            <div class="col-12 mb-4">
+                                <label for="additional_instructions" class="form-label fw-semibold">
+                                    <i class="bi bi-chat-left-text me-2"></i>Additional Instructions (Optional)
+                                </label>
+                                <textarea class="form-control glass-input" 
+                                          id="additional_instructions" 
+                                          name="additional_instructions" 
+                                          rows="4" 
+                                          placeholder="Any specific requirements, key points to include, or style preferences..."></textarea>
+                                <div class="form-text">
+                                    <i class="bi bi-lightbulb me-1"></i>
+                                    Add any specific requirements, keywords to emphasize, or particular angles you'd like the content to focus on.
+                                </div>
+                            </div>
+
+                            <!-- Content Preview Card -->
+                            <div class="col-12 mb-4">
+                                <div class="alert alert-info glass-alert" role="alert">
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-info-circle-fill me-3 mt-1"></i>
+                                        <div>
+                                            <h6 class="alert-heading mb-2">Content Generation Process</h6>
+                                            <p class="mb-2">The AI will:</p>
+                                            <ol class="mb-0 small">
+                                                <li>Extract keywords from your Google Doc</li>
+                                                <li>Conduct research using those keywords</li>
+                                                <li>Analyze research findings for insights</li>
+                                                <li>Generate content based on your specifications</li>
+                                                <li>Create a downloadable document with the content</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Generate Button -->
+                            <div class="col-12 text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5 py-3 fw-semibold">
+                                    <i class="bi bi-magic me-2"></i>
+                                    Generate AI Content
+                                    <span class="spinner-border spinner-border-sm ms-2 d-none" id="generateSpinner"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-10">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <h3 class="text-center mb-4">
+                        <i class="bi bi-stars text-warning me-2"></i>
+                        Content Generation Features
+                    </h3>
+                    <div class="row g-4">
+                        <div class="col-md-4 text-center">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-search text-primary"></i>
+                            </div>
+                            <h5>Research-Driven</h5>
+                            <p class="text-muted small">
+                                Content is based on actual research papers and academic insights extracted from your input.
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-palette text-success"></i>
+                            </div>
+                            <h5>Multiple Formats</h5>
+                            <p class="text-muted small">
+                                Generate blog posts, articles, social media content, whitepapers, and more.
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-person-gear text-info"></i>
+                            </div>
+                            <h5>Customizable</h5>
+                            <p class="text-muted small">
+                                Adjust tone, length, and target audience to match your specific needs.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('contentGenerationForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const spinner = document.getElementById('generateSpinner');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Validate form
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        submitBtn.innerHTML = '<i class="bi bi-magic me-2"></i>Generating Content... <span class="spinner-border spinner-border-sm ms-2"></span>';
+
+        // Prepare form data
+        const formData = new FormData(form);
+
+        // Submit form
+        fetch('/ai-content/generate', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Redirect to progress page
+            window.location.href = `/ai-content/progress/${data.task_id}`;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            
+            // Reset button state
+            submitBtn.disabled = false;
+            spinner.classList.add('d-none');
+            submitBtn.innerHTML = '<i class="bi bi-magic me-2"></i>Generate AI Content';
+            
+            // Show error message
+            alert('Error starting content generation: ' + error.message);
+        });
+    });
+
+    // Content type change handler to show relevant info
+    const contentTypeSelect = document.getElementById('content_type');
+    contentTypeSelect.addEventListener('change', function() {
+        updateContentInfo(this.value);
+    });
+
+    function updateContentInfo(contentType) {
+        const lengthSelect = document.getElementById('content_length');
+        const lengthOptions = lengthSelect.querySelectorAll('option');
+        
+        // Update length options based on content type
+        switch(contentType) {
+            case 'social_media':
+                lengthOptions[0].textContent = 'Short (Twitter threads)';
+                lengthOptions[1].textContent = 'Medium (LinkedIn posts)';
+                lengthOptions[2].textContent = 'Long (Multi-platform campaign)';
+                break;
+            case 'marketing_copy':
+                lengthOptions[0].textContent = 'Short (Ads & subject lines)';
+                lengthOptions[1].textContent = 'Medium (Landing page copy)';
+                lengthOptions[2].textContent = 'Long (Complete campaign)';
+                break;
+            case 'whitepaper':
+                lengthOptions[0].textContent = 'Short (2000-3000 words)';
+                lengthOptions[1].textContent = 'Medium (3000-5000 words)';
+                lengthOptions[2].textContent = 'Long (5000+ words)';
+                break;
+            default:
+                lengthOptions[0].textContent = 'Short (800-1200 words)';
+                lengthOptions[1].textContent = 'Medium (1200-1800 words)';
+                lengthOptions[2].textContent = 'Long (1800+ words)';
+        }
+    }
+
+    // Initialize content info
+    updateContentInfo(contentTypeSelect.value);
+});
+</script>
+{% endblock %} 

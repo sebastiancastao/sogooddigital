@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}AI Content Generation Progress{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-5">
+    <!-- Header Section -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-8 text-center">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <div class="icon-wrapper mb-3">
+                        <div class="icon-layers">
+                            <i class="bi bi-magic layer-1 text-primary"></i>
+                            <i class="bi bi-gear layer-2 text-accent animated-spin"></i>
+                        </div>
+                    </div>
+                    <h1 class="h3 fw-bold mb-2 gradient-text">AI Content Generation</h1>
+                    <p class="text-muted mb-0">Generating your content using research insights...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="glass-card">
+                <div class="card-body p-5">
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-semibold">Progress</span>
+                            <span class="fw-semibold" id="progressPercent">0%</span>
+                        </div>
+                        <div class="progress glass-progress" style="height: 12px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 id="progressBar" 
+                                 role="progressbar" 
+                                 style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Current Status -->
+                    <div class="text-center mb-4">
+                        <h4 class="fw-semibold mb-2" id="statusMessage">Initializing...</h4>
+                        <p class="text-muted mb-3" id="statusDetail">Please wait while we set up the content generation process.</p>
+                        
+                        <!-- Time Information -->
+                        <div class="row g-3 justify-content-center">
+                            <div class="col-auto">
+                                <div class="badge bg-primary-subtle text-primary p-2">
+                                    <i class="bi bi-clock me-1"></i>
+                                    <span id="elapsedTime">0s</span> elapsed
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="badge bg-info-subtle text-info p-2" id="remainingTimeBadge" style="display: none;">
+                                    <i class="bi bi-hourglass-split me-1"></i>
+                                    <span id="remainingTime">-</span> remaining
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Process Steps -->
+                    <div class="process-steps">
+                        <div class="step" id="step-1">
+                            <div class="step-icon">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                            <div class="step-content">
+                                <h6 class="step-title">Extract Keywords</h6>
+                                <p class="step-description">Analyzing your Google Doc to extract relevant keywords and topics.</p>
+                            </div>
+                        </div>
+
+                        <div class="step" id="step-2">
+                            <div class="step-icon">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <div class="step-content">
+                                <h6 class="step-title">Conduct Research</h6>
+                                <p class="step-description">Searching for relevant research papers and academic sources.</p>
+                            </div>
+                        </div>
+
+                        <div class="step" id="step-3">
+                            <div class="step-icon">
+                                <i class="bi bi-file-pdf"></i>
+                            </div>
+                            <div class="step-content">
+                                <h6 class="step-title">Process Papers</h6>
+                                <p class="step-description">Downloading and analyzing research papers for insights.</p>
+                            </div>
+                        </div>
+
+                        <div class="step" id="step-4">
+                            <div class="step-icon">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+                            <div class="step-content">
+                                <h6 class="step-title">Analyze Research</h6>
+                                <p class="step-description">Extracting key insights and analyzing research relevance.</p>
+                            </div>
+                        </div>
+
+                        <div class="step" id="step-5">
+                            <div class="step-icon">
+                                <i class="bi bi-magic"></i>
+                            </div>
+                            <div class="step-content">
+                                <h6 class="step-title">Generate Content</h6>
+                                <p class="step-description">Creating AI-powered content based on research findings.</p>
+                            </div>
+                        </div>
+
+                        <div class="step" id="step-6">
+                            <div class="step-icon">
+                                <i class="bi bi-file-earmark-check"></i>
+                            </div>
+                            <div class="step-content">
+                                <h6 class="step-title">Create Document</h6>
+                                <p class="step-description">Generating final document with your content.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-outline-secondary me-2" onclick="window.location.href='/ai-content'">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Generator
+                        </button>
+                        <button type="button" class="btn btn-primary" id="refreshBtn" onclick="updateStatus()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Card (shown when data is available) -->
+    <div class="row justify-content-center mt-4" id="statsCard" style="display: none;">
+        <div class="col-lg-8">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-bar-chart me-2"></i>Generation Statistics
+                    </h5>
+                    <div class="row g-3 text-center">
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value" id="contentType">-</div>
+                                <div class="stat-label">Content Type</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value" id="contentTone">-</div>
+                                <div class="stat-label">Tone</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value" id="contentLength">-</div>
+                                <div class="stat-label">Length</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value" id="targetAudience">-</div>
+                                <div class="stat-label">Audience</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let taskId = '{{ task_id }}';
+let updateInterval;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Start status updates
+    updateStatus();
+    updateInterval = setInterval(updateStatus, 2000); // Update every 2 seconds
+});
+
+function updateStatus() {
+    fetch(`/api/ai-content/status/${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                clearInterval(updateInterval);
+                showError(data.error);
+                return;
+            }
+            
+            updateProgressDisplay(data);
+            
+            // If completed, redirect to results
+            if (data.status === 'completed') {
+                clearInterval(updateInterval);
+                setTimeout(() => {
+                    window.location.href = `/ai-content/results/${taskId}`;
+                }, 1000);
+            }
+            
+            // If error, show error and stop updates
+            if (data.status === 'error') {
+                clearInterval(updateInterval);
+                showError(data.message || 'An error occurred during content generation');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching status:', error);
+        });
+}
+
+function updateProgressDisplay(data) {
+    // Update progress bar
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    
+    progressBar.style.width = data.progress + '%';
+    progressPercent.textContent = data.progress + '%';
+    
+    // Update status message
+    document.getElementById('statusMessage').textContent = data.message || 'Processing...';
+    
+    // Update timing information
+    if (data.elapsed_time) {
+        document.getElementById('elapsedTime').textContent = formatTime(data.elapsed_time);
+    }
+    
+    if (data.estimated_remaining && data.estimated_remaining > 0) {
+        document.getElementById('remainingTime').textContent = formatTime(data.estimated_remaining);
+        document.getElementById('remainingTimeBadge').style.display = 'block';
+    }
+    
+    // Update step status
+    const currentStep = data.step || 0;
+    for (let i = 1; i <= 6; i++) {
+        const stepElement = document.getElementById(`step-${i}`);
+        stepElement.classList.remove('active', 'completed');
+        
+        if (i < currentStep) {
+            stepElement.classList.add('completed');
+        } else if (i === currentStep) {
+            stepElement.classList.add('active');
+        }
+    }
+    
+    // Show statistics if available
+    if (data.content_type) {
+        showStatistics(data);
+    }
+}
+
+function showStatistics(data) {
+    const statsCard = document.getElementById('statsCard');
+    
+    document.getElementById('contentType').textContent = (data.content_type || '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    document.getElementById('contentTone').textContent = (data.content_tone || '').replace(/\b\w/g, l => l.toUpperCase());
+    document.getElementById('contentLength').textContent = (data.content_length || '').replace(/\b\w/g, l => l.toUpperCase());
+    document.getElementById('targetAudience').textContent = (data.target_audience || '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    statsCard.style.display = 'block';
+}
+
+function showError(message) {
+    const statusMessage = document.getElementById('statusMessage');
+    const statusDetail = document.getElementById('statusDetail');
+    
+    statusMessage.textContent = 'Error';
+    statusMessage.className = 'fw-semibold mb-2 text-danger';
+    statusDetail.textContent = message;
+    statusDetail.className = 'text-danger mb-3';
+    
+    // Update progress bar to show error
+    const progressBar = document.getElementById('progressBar');
+    progressBar.className = 'progress-bar bg-danger';
+    progressBar.style.width = '100%';
+    
+    document.getElementById('progressPercent').textContent = 'Error';
+}
+
+function formatTime(seconds) {
+    if (seconds < 60) {
+        return Math.round(seconds) + 's';
+    } else if (seconds < 3600) {
+        return Math.round(seconds / 60) + 'm ' + Math.round(seconds % 60) + 's';
+    } else {
+        return Math.round(seconds / 3600) + 'h ' + Math.round((seconds % 3600) / 60) + 'm';
+    }
+}
+</script>
+
+<style>
+.process-steps {
+    margin: 2rem 0;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.step.active {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    border-color: rgba(var(--bs-primary-rgb), 0.3);
+    transform: scale(1.02);
+}
+
+.step.completed {
+    background: rgba(var(--bs-success-rgb), 0.05);
+    border-color: rgba(var(--bs-success-rgb), 0.2);
+}
+
+.step-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    margin-right: 1rem;
+    flex-shrink: 0;
+    font-size: 1.25rem;
+}
+
+.step.active .step-icon {
+    background: var(--bs-primary);
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+.step.completed .step-icon {
+    background: var(--bs-success);
+    color: white;
+}
+
+.step.completed .step-icon i::before {
+    content: "\f26b"; /* check icon */
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.step-description {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    color: var(--bs-text-muted);
+}
+
+.step.active .step-title {
+    color: var(--bs-primary);
+}
+
+.step.completed .step-title {
+    color: var(--bs-success);
+}
+
+.stat-item {
+    padding: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--bs-primary);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--bs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.animated-spin {
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %} 

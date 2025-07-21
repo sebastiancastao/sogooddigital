@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block title %}AI Content Generation Results{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-5">
+    <!-- Header Section -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10 text-center">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <div class="icon-wrapper mb-3">
+                        <div class="icon-layers">
+                            <i class="bi bi-check-circle-fill layer-1 text-success"></i>
+                            <i class="bi bi-magic layer-2 text-primary"></i>
+                        </div>
+                    </div>
+                    <h1 class="h3 fw-bold mb-2 gradient-text">Content Generated Successfully!</h1>
+                    <p class="text-muted mb-0">Your AI-powered content has been created based on research insights.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3">
+                        <i class="bi bi-bar-chart me-2"></i>Generation Summary
+                    </h4>
+                    <div class="row g-4">
+                        {% if results.content_generated %}
+                        <div class="col-lg-3 col-md-6">
+                            <div class="stat-card text-center">
+                                <div class="stat-icon">
+                                    <i class="bi bi-file-richtext text-primary"></i>
+                                </div>
+                                <div class="stat-value">{{ results.generation_params.content_type.replace('_', ' ').title() }}</div>
+                                <div class="stat-label">Content Type</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="stat-card text-center">
+                                <div class="stat-icon">
+                                    <i class="bi bi-type text-info"></i>
+                                </div>
+                                <div class="stat-value">{{ results.content_generated.word_count or 0 }}</div>
+                                <div class="stat-label">Words Generated</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="stat-card text-center">
+                                <div class="stat-icon">
+                                    <i class="bi bi-journal-text text-success"></i>
+                                </div>
+                                <div class="stat-value">{{ results.research_summary.papers_processed or 0 }}</div>
+                                <div class="stat-label">Research Papers</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="stat-card text-center">
+                                <div class="stat-icon">
+                                    <i class="bi bi-tags text-warning"></i>
+                                </div>
+                                <div class="stat-value">{{ results.research_summary.keywords_extracted or 0 }}</div>
+                                <div class="stat-label">Keywords Used</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generated Content Preview -->
+    {% if results.content_generated and results.content_generated.generation_successful %}
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="card-title mb-0">
+                            <i class="bi bi-eye me-2"></i>Content Preview
+                        </h4>
+                        <div class="content-meta">
+                            <span class="badge bg-primary-subtle text-primary me-2">
+                                {{ results.generation_params.content_tone.title() }}
+                            </span>
+                            <span class="badge bg-info-subtle text-info">
+                                {{ results.generation_params.content_length.title() }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="content-preview">
+                        <div class="content-text">
+                            {{ results.content_generated.content[:1000] | safe }}
+                            {% if results.content_generated.content|length > 1000 %}
+                            <span class="text-muted">... [Content continues in downloaded document]</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Download Section -->
+    {% if results.final_document and results.final_document.success %}
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+            <div class="glass-card">
+                <div class="card-body p-4 text-center">
+                    <h4 class="card-title mb-3">
+                        <i class="bi bi-download me-2"></i>Download Your Content
+                    </h4>
+                    <p class="text-muted mb-4">
+                        Your complete content document is ready for download. It includes the generated content, 
+                        research keywords, and the research foundation used for creation.
+                    </p>
+                    
+                    <div class="download-card mb-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="file-icon me-3">
+                                    <i class="bi bi-file-earmark-word text-primary"></i>
+                                </div>
+                                <div class="text-start">
+                                    <div class="fw-semibold">{{ results.final_document.filename }}</div>
+                                    <div class="text-muted small">
+                                        Word Document • {{ results.final_document.word_count or 'Unknown' }} words
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="{{ url_for('download_file', filename=results.final_document.filename) }}" 
+                               class="btn btn-primary">
+                                <i class="bi bi-download me-2"></i>Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Generation Parameters -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3">
+                        <i class="bi bi-gear me-2"></i>Generation Parameters
+                    </h4>
+                    <div class="row g-3">
+                        {% if results.generation_params %}
+                        <div class="col-md-6">
+                            <div class="param-item">
+                                <label class="param-label">Content Type:</label>
+                                <span class="param-value">{{ results.generation_params.content_type.replace('_', ' ').title() }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="param-item">
+                                <label class="param-label">Tone & Style:</label>
+                                <span class="param-value">{{ results.generation_params.content_tone.replace('_', ' ').title() }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="param-item">
+                                <label class="param-label">Content Length:</label>
+                                <span class="param-value">{{ results.generation_params.content_length.title() }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="param-item">
+                                <label class="param-label">Target Audience:</label>
+                                <span class="param-value">{{ results.generation_params.target_audience.replace('_', ' ').title() }}</span>
+                            </div>
+                        </div>
+                        {% if results.generation_params.additional_instructions %}
+                        <div class="col-12">
+                            <div class="param-item">
+                                <label class="param-label">Additional Instructions:</label>
+                                <div class="param-value mt-1">
+                                    <div class="instruction-box">
+                                        {{ results.generation_params.additional_instructions }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Research Foundation -->
+    {% if results.research_summary %}
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3">
+                        <i class="bi bi-book me-2"></i>Research Foundation
+                    </h4>
+                    <div class="row g-4 text-center">
+                        <div class="col-md-3">
+                            <div class="research-stat">
+                                <div class="research-number">{{ results.research_summary.papers_found or 0 }}</div>
+                                <div class="research-label">Papers Found</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="research-stat">
+                                <div class="research-number">{{ results.research_summary.papers_analyzed or 0 }}</div>
+                                <div class="research-label">Papers Analyzed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="research-stat">
+                                <div class="research-number">{{ results.research_summary.papers_processed or 0 }}</div>
+                                <div class="research-label">Papers Processed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="research-stat">
+                                <div class="research-number">{{ results.research_summary.keywords_extracted or 0 }}</div>
+                                <div class="research-label">Keywords Extracted</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bright Data Statistics -->
+    {% if results.bright_data_stats and results.bright_data_stats.requests_made %}
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3">
+                        <i class="bi bi-globe me-2"></i>API Performance
+                    </h4>
+                    <div class="row g-4 text-center">
+                        <div class="col-md-3">
+                            <div class="api-stat">
+                                <div class="api-number">{{ results.bright_data_stats.requests_made }}</div>
+                                <div class="api-label">API Requests</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="api-stat">
+                                <div class="api-number">{{ "%.1f"|format(results.bright_data_stats.success_rate or 0) }}%</div>
+                                <div class="api-label">Success Rate</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="api-stat">
+                                <div class="api-number">{{ results.bright_data_stats.captcha_bypassed or 0 }}</div>
+                                <div class="api-label">CAPTCHAs Bypassed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="api-stat">
+                                <div class="api-number">{{ "%.2f"|format(results.bright_data_stats.average_response_time or 0) }}s</div>
+                                <div class="api-label">Avg Response Time</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="text-center">
+                <a href="{{ url_for('ai_content_generator_form') }}" class="btn btn-primary me-3">
+                    <i class="bi bi-magic me-2"></i>Generate More Content
+                </a>
+                <a href="{{ url_for('research_form') }}" class="btn btn-outline-primary me-3">
+                    <i class="bi bi-search me-2"></i>Research Analysis
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-house me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add copy functionality to content preview
+    const contentPreview = document.querySelector('.content-preview');
+    if (contentPreview) {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-sm btn-outline-primary copy-btn';
+        copyBtn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy Preview';
+        copyBtn.onclick = function() {
+            const contentText = contentPreview.querySelector('.content-text').innerText;
+            navigator.clipboard.writeText(contentText).then(function() {
+                copyBtn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+                copyBtn.classList.add('btn-success');
+                copyBtn.classList.remove('btn-outline-primary');
+                
+                setTimeout(function() {
+                    copyBtn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy Preview';
+                    copyBtn.classList.remove('btn-success');
+                    copyBtn.classList.add('btn-outline-primary');
+                }, 2000);
+            });
+        };
+        
+        contentPreview.parentElement.querySelector('.d-flex').appendChild(copyBtn);
+    }
+});
+</script>
+
+<style>
+.stat-card {
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--bs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.content-preview {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    position: relative;
+}
+
+.content-text {
+    font-size: 1rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: var(--bs-body-color);
+}
+
+.download-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.file-icon {
+    font-size: 2.5rem;
+}
+
+.param-item {
+    margin-bottom: 1rem;
+}
+
+.param-label {
+    font-weight: 600;
+    color: var(--bs-text-muted);
+    margin-right: 0.5rem;
+}
+
+.param-value {
+    color: var(--bs-body-color);
+}
+
+.instruction-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    font-style: italic;
+}
+
+.research-stat, .api-stat {
+    padding: 1rem;
+}
+
+.research-number, .api-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    margin-bottom: 0.25rem;
+}
+
+.research-label, .api-label {
+    font-size: 0.85rem;
+    color: var(--bs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.copy-btn {
+    margin-left: auto;
+}
+
+.content-meta .badge {
+    font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .download-card .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .download-card .text-start {
+        text-align: center !important;
+    }
+}
+</style>
+{% endblock %} 
