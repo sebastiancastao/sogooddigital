@@ -1041,10 +1041,150 @@ Create a compelling case study:
     #     
     #     return result
     
+    def scrape_siecotech_blogs(self) -> List[Dict[str, Any]]:
+        """Scrape Sieco-Tech blog posts and extract content for internal linking"""
+        try:
+            import requests
+            from bs4 import BeautifulSoup
+            
+            logger.info("🔍 Scraping Sieco-Tech blog posts...")
+            
+            # Scrape the main blog page
+            response = requests.get('https://siecotech.com/blogs', timeout=30)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            blog_posts = []
+            
+            # Find blog post links and titles
+            blog_links = soup.find_all('a', href=True)
+            
+            for link in blog_links:
+                href = link.get('href')
+                if href and '/blogs/' in href and href != '/blogs':
+                    # Extract individual blog post
+                    try:
+                        post_response = requests.get(f'https://siecotech.com{href}', timeout=30)
+                        post_response.raise_for_status()
+                        
+                        post_soup = BeautifulSoup(post_response.content, 'html.parser')
+                        
+                        # Extract title
+                        title = post_soup.find('h1') or post_soup.find('title')
+                        title_text = title.get_text().strip() if title else 'Untitled'
+                        
+                        # Extract content (look for main content areas)
+                        content_divs = post_soup.find_all(['div', 'article', 'section'], class_=lambda x: x and any(word in x.lower() for word in ['content', 'post', 'article', 'body']))
+                        
+                        content_text = ""
+                        for div in content_divs:
+                            # Remove script and style elements
+                            for script in div(["script", "style"]):
+                                script.decompose()
+                            content_text += div.get_text() + " "
+                        
+                        # Clean up content
+                        content_text = ' '.join(content_text.split())
+                        
+                        if content_text and len(content_text) > 100:  # Only include substantial content
+                            blog_posts.append({
+                                'title': title_text,
+                                'url': f'https://siecotech.com{href}',
+                                'content': content_text[:2000],  # Limit content length
+                                'excerpt': content_text[:300] + "..." if len(content_text) > 300 else content_text
+                            })
+                            
+                    except Exception as e:
+                        logger.warning(f"Failed to scrape individual blog post {href}: {e}")
+                        continue
+            
+            logger.info(f"✅ Successfully scraped {len(blog_posts)} blog posts from Sieco-Tech")
+            return blog_posts
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to scrape Sieco-Tech blogs: {e}")
+            return []
+
+    def analyze_blog_content_for_links(self, content: str, blog_posts: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """Use OpenAI to analyze content and suggest internal links with optimized anchor phrases"""
+        try:
+            if not self.client or not blog_posts:
+                return []
+            
+            # Prepare blog context for OpenAI
+            blog_context = "\n\n".join([
+                f"Title: {post['title']}\nURL: {post['url']}\nContent: {post['excerpt']}"
+                for post in blog_posts[:5]  # Limit to top 5 posts for context
+            ])
+            
+            prompt = f"""
+            Analyze the following content and suggest 2 internal links from the available blog posts.
+            For each link, provide an optimized anchor phrase that naturally fits the content.
+            Avoid adding links to the introduction (first paragraph) or conclusion (last paragraph).
+            
+            Target Content:
+            {content[:1500]}
+            
+            Available Blog Posts:
+            {blog_context}
+            
+            Return your response in this exact format:
+            LINK1: [anchor phrase] -> [blog post URL]
+            LINK2: [anchor phrase] -> [blog post URL]
+            
+            Choose anchor phrases that:
+            1. Are 2-4 words long
+            2. Naturally fit the content context
+            3. Are relevant to the linked blog post
+            4. Avoid generic terms like "click here" or "read more"
+            """
+            
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": "You are an expert content strategist who creates natural internal links with optimized anchor phrases."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=500
+            )
+            
+            # Parse the response
+            suggestions = []
+            response_text = response.choices[0].message.content
+            
+            for line in response_text.split('\n'):
+                if 'LINK1:' in line or 'LINK2:' in line:
+                    try:
+                        parts = line.split(' -> ')
+                        if len(parts) == 2:
+                            anchor_phrase = parts[0].split(': ')[1].strip()
+                            url = parts[1].strip()
+                            suggestions.append({
+                                'anchor_phrase': anchor_phrase,
+                                'url': url
+                            })
+                    except Exception as e:
+                        logger.warning(f"Failed to parse link suggestion: {line}")
+                        continue
+            
+            logger.info(f"✅ Generated {len(suggestions)} internal link suggestions")
+            return suggestions[:2]  # Return max 2 links
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to analyze blog content for links: {e}")
+            return []
+
     def add_external_links_to_content(self, content: str, keywords_data: Dict[str, Any]) -> str:
-        """Add 2 external links with optimized anchor phrases, avoiding intro and conclusion"""
+        """Add 2 external links with optimized anchor phrases using markdown format, avoiding intro and conclusion"""
         
         try:
+            # Scrape Sieco-Tech blogs for internal linking
+            blog_posts = self.scrape_siecotech_blogs()
+            
+            # Use OpenAI to analyze content and suggest internal links
+            internal_link_suggestions = self.analyze_blog_content_for_links(content, blog_posts)
+            
             # Define high-authority external resources with relevant anchor phrases
             external_resources = [
                 {
@@ -1086,33 +1226,56 @@ Create a compelling case study:
             # Extract primary keywords for context
             primary_keywords = keywords_data.get('primary_keywords', [])
             
-            # Select 2 resources and anchor phrases
+            # Combine internal and external links
+            all_links = []
+            
+            # Add internal links from Sieco-Tech blogs
+            for suggestion in internal_link_suggestions:
+                all_links.append({
+                    'url': suggestion['url'],
+                    'anchor_phrase': suggestion['anchor_phrase'],
+                    'type': 'internal'
+                })
+            
+            # Add external links if we need more
             import random
-            selected_resources = random.sample(external_resources, min(2, len(external_resources)))
+            if len(all_links) < 2:
+                selected_external = random.sample(external_resources, min(2 - len(all_links), len(external_resources)))
+                for resource in selected_external:
+                    anchor_phrase = self._select_best_anchor_phrase(resource['anchor_phrases'], primary_keywords, content)
+                    all_links.append({
+                        'url': resource['url'],
+                        'anchor_phrase': anchor_phrase,
+                        'type': 'external'
+                    })
+            
+            # Limit to 2 total links
+            all_links = all_links[:2]
             
             links_added = 0
             modified_paragraphs = paragraphs.copy()
             
-            for i, resource in enumerate(selected_resources):
+            for i, link_data in enumerate(all_links):
                 if links_added >= 2:
                     break
-                
-                # Choose anchor phrase based on content context
-                anchor_phrase = self._select_best_anchor_phrase(resource['anchor_phrases'], primary_keywords, content)
                 
                 # Find a good position in middle paragraphs
                 target_paragraph_idx = 1 + (i * len(middle_paragraphs) // 2)
                 
                 if target_paragraph_idx < len(modified_paragraphs) - 1:
-                    # Insert link naturally into the paragraph
+                    # Insert markdown link naturally into the paragraph
                     original_paragraph = modified_paragraphs[target_paragraph_idx]
-                    modified_paragraph = self._insert_link_naturally(original_paragraph, resource['url'], anchor_phrase)
+                    modified_paragraph = self._insert_markdown_link_naturally(
+                        original_paragraph, 
+                        link_data['url'], 
+                        link_data['anchor_phrase']
+                    )
                     
                     if modified_paragraph != original_paragraph:
                         modified_paragraphs[target_paragraph_idx] = modified_paragraph
                         links_added += 1
             
-            logger.info(f"🔗 Added {links_added} external links to content")
+            logger.info(f"🔗 Added {links_added} links to content ({len(internal_link_suggestions)} internal, {links_added - len(internal_link_suggestions)} external)")
             return '\n\n'.join(modified_paragraphs)
             
         except Exception as e:
@@ -1182,6 +1345,47 @@ Create a compelling case study:
         
         # Add link as a supporting reference
         linked_sentence = f"{middle_sentence} For more insights on this topic, see <a href='{url}' target='_blank' rel='noopener'>{anchor_phrase}</a>."
+        sentences[middle_idx] = linked_sentence
+        
+        return '. '.join(sentences)
+
+    def _insert_markdown_link_naturally(self, paragraph: str, url: str, anchor_phrase: str) -> str:
+        """Insert a markdown link naturally into a paragraph"""
+        
+        # Look for natural insertion points
+        sentences = paragraph.split('. ')
+        
+        if len(sentences) < 2:
+            return paragraph
+        
+        # Try to find a sentence where the link would fit naturally
+        for i, sentence in enumerate(sentences):
+            sentence_lower = sentence.lower()
+            
+            # Look for contextual cues where a link would be natural
+            link_cues = [
+                'research shows', 'studies indicate', 'according to', 'experts suggest',
+                'industry leaders', 'best practices', 'proven strategies', 'analysis reveals'
+            ]
+            
+            if any(cue in sentence_lower for cue in link_cues):
+                # Insert link at the end of this sentence
+                if not sentence.endswith('.'):
+                    sentence += '.'
+                
+                linked_sentence = f"{sentence} This aligns with findings from [{anchor_phrase}]({url})."
+                sentences[i] = linked_sentence
+                return '. '.join(sentences)
+        
+        # If no natural insertion point found, add to the middle sentence
+        middle_idx = len(sentences) // 2
+        middle_sentence = sentences[middle_idx]
+        
+        if not middle_sentence.endswith('.'):
+            middle_sentence += '.'
+        
+        # Add link as a supporting reference
+        linked_sentence = f"{middle_sentence} For more insights on this topic, see [{anchor_phrase}]({url})."
         sentences[middle_idx] = linked_sentence
         
         return '. '.join(sentences)
