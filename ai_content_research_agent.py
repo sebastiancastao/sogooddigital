@@ -152,6 +152,19 @@ class AIContentResearchAgent:
         # Content generation templates
         self.content_templates = self._load_content_templates()
         
+        # Load B2B marketing content generator
+        try:
+            from b2b_marketing_content_spec import B2BMarketingContentGenerator, B2BMarketingContentSpec, create_b2b_marketing_prompt
+            self.b2b_generator = B2BMarketingContentGenerator()
+            self.B2BMarketingContentSpec = B2BMarketingContentSpec
+            self.b2b_prompt_creator = create_b2b_marketing_prompt
+            logger.info("✅ B2B Marketing Content Generator loaded")
+        except ImportError as e:
+            logger.warning(f"⚠️ B2B Marketing Content Generator not available: {e}")
+            self.b2b_generator = None
+            self.B2BMarketingContentSpec = None
+            self.b2b_prompt_creator = None
+        
         # Content generation statistics
         self.generation_stats = {
             'total_generated': 0,
@@ -202,6 +215,18 @@ class AIContentResearchAgent:
                 'structure': ['executive_summary', 'challenge', 'solution', 'implementation', 'results', 'conclusion'],
                 'proof_elements': ['metrics', 'testimonials', 'before_after', 'roi_analysis'],
                 'credibility_factors': ['client_logos', 'data_visualization', 'quotes']
+            },
+            'b2b_blog_package': {
+                'word_ranges': {'short': '800-1000', 'medium': '1000-1200', 'long': '1200-1500'},
+                'structure': ['intro', 'market_shift', 'authoritative_stats', 'practical_framework', 'case_proof', 'urgency_cta'],
+                'required_elements': ['faq_block', 'author_line', 'authority_citations'],
+                'compliance_rules': ['no_emojis', 'authority_sources_only', 'banned_domains_check']
+            },
+            'b2b_linkedin_post': {
+                'word_limit': 150,
+                'structure': ['hook', 'value_stat', 'insight', 'cta'],
+                'required_elements': ['strategic_angle', 'data_point'],
+                'compliance_rules': ['no_emojis', 'authority_sources_only', 'word_limit_strict']
             }
         }
     
@@ -394,6 +419,103 @@ class AIContentResearchAgent:
             } for paper in papers[:5]  # Top 5 papers
         ]
     
+    def generate_b2b_marketing_content(self,
+                                     keyword: str,
+                                     keywords_data: Dict[str, Any],
+                                     research_analysis: Dict[str, Any],
+                                     b2b_spec: Any = None) -> ContentResult:
+        """
+        Generate B2B marketing content following authority-first sourcing workflow
+        
+        Args:
+            keyword: Single keyword or keyword phrase
+            keywords_data: Extracted keywords data
+            research_analysis: Research analysis results
+            b2b_spec: B2BMarketingContentSpec instance
+            
+        Returns:
+            ContentResult with B2B marketing content
+        """
+        start_time = time.time()
+        
+        if not self.client:
+            return ContentResult(
+                content="Error: OpenAI client not available",
+                generation_successful=False,
+                metadata={'error': 'OpenAI client not initialized'}
+            )
+        
+        if not self.b2b_generator or not b2b_spec:
+            return ContentResult(
+                content="Error: B2B Marketing Content Generator not available",
+                generation_successful=False,
+                metadata={'error': 'B2B generator not initialized'}
+            )
+        
+        try:
+            logger.info(f"🚀 Starting B2B marketing content generation for keyword: {keyword}")
+            
+            # Use specialized B2B content generator
+            b2b_result = self.b2b_generator.generate_b2b_content(keyword, research_analysis, b2b_spec)
+            
+            if not b2b_result.generation_successful:
+                return ContentResult(
+                    content=f"B2B content generation failed: {'; '.join(b2b_result.errors)}",
+                    generation_successful=False,
+                    metadata={'errors': b2b_result.errors}
+                )
+            
+            # Combine all content sections
+            full_content = f"{b2b_result.blog_body}\n\n{b2b_result.faq_section}\n\n{b2b_result.author_line}"
+            
+            if b2b_result.linkedin_post:
+                full_content = f"LinkedIn Post:\n{b2b_result.linkedin_post}\n\n---\n\nBlog Package:\n{full_content}"
+            
+            generation_time = time.time() - start_time
+            
+            # Update statistics
+            self._update_generation_stats('b2b_blog_package', generation_time, True)
+            
+            result = ContentResult(
+                content=full_content,
+                content_type='b2b_blog_package',
+                word_count=b2b_result.word_count,
+                generation_successful=True,
+                research_papers_used=len(research_analysis.get('papers_summary', [])),
+                keywords_used=len(keywords_data.get('primary_keywords', [])),
+                generation_time=generation_time,
+                quality_score=0.95 if all(b2b_result.compliance_check.values()) else 0.75,
+                research_quality=research_analysis.get('research_quality', 'high'),
+                citations_included=[stat['source_title'] for stat in b2b_result.evidence_ledger.statistics],
+                metadata={
+                    'b2b_compliance_check': b2b_result.compliance_check,
+                    'concept_hierarchy': b2b_result.concept_hierarchy.concepts,
+                    'evidence_ledger': len(b2b_result.evidence_ledger.statistics),
+                    'linkedin_post': b2b_result.linkedin_post,
+                    'faq_section': b2b_result.faq_section,
+                    'author_line': b2b_result.author_line,
+                    'keyword': keyword,
+                    'timestamp': datetime.now().isoformat()
+                }
+            )
+            
+            logger.info(f"✅ B2B marketing content generated successfully: {b2b_result.word_count} words")
+            logger.info(f"📊 Compliance checks: {sum(b2b_result.compliance_check.values())}/{len(b2b_result.compliance_check)} passed")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"B2B marketing content generation failed: {e}")
+            self._update_generation_stats('b2b_blog_package', time.time() - start_time, False)
+            
+            return ContentResult(
+                content=f"Error generating B2B marketing content: {str(e)}",
+                content_type='b2b_blog_package',
+                generation_successful=False,
+                generation_time=time.time() - start_time,
+                metadata={'error': str(e)}
+            )
+
     def generate_content(self, 
                         keywords_data: Dict[str, Any],
                         research_analysis: Dict[str, Any],

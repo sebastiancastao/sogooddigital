@@ -1035,6 +1035,12 @@ def ai_content_generate():
         target_audience = request.form.get('target_audience', 'general')
         additional_instructions = request.form.get('additional_instructions', '').strip()
         
+        # B2B Marketing specific fields
+        keyword = request.form.get('keyword', '').strip()
+        author_name = request.form.get('author_name', 'Ilia Tretiakov').strip()
+        author_role = request.form.get('author_role', 'B2B Growth Strategy Expert').strip()
+        author_years = int(request.form.get('author_years', 10))
+        
         # Validate inputs
         if not google_file_id:
             return jsonify({'error': 'Google File ID is required'}), 400
@@ -1042,17 +1048,35 @@ def ai_content_generate():
         # Generate unique task ID
         task_id = str(uuid.uuid4())
         
-        # Create content specification
-        content_spec = ContentSpecification(
-            content_type=content_type,
-            content_tone=content_tone,
-            content_length=content_length,
-            target_audience=target_audience,
-            additional_instructions=additional_instructions,
-            include_citations=True,
-            include_statistics=True,
-            seo_optimization=True
-        )
+        # Create content specification based on type
+        if content_type in ['b2b_blog_package', 'b2b_linkedin_post'] and keyword:
+            # Use B2B marketing specification
+            try:
+                from b2b_marketing_content_spec import B2BMarketingContentSpec
+                b2b_spec = B2BMarketingContentSpec(
+                    keyword=keyword,
+                    content_type=content_type,
+                    author_name=author_name,
+                    author_role=author_role,
+                    author_years=author_years
+                )
+                content_spec = None  # Will use b2b_spec instead
+            except ImportError:
+                logger.error("B2B Marketing Content Spec not available")
+                return jsonify({'error': 'B2B Marketing content type not available'}), 500
+        else:
+            # Use standard content specification
+            content_spec = ContentSpecification(
+                content_type=content_type,
+                content_tone=content_tone,
+                content_length=content_length,
+                target_audience=target_audience,
+                additional_instructions=additional_instructions,
+                include_citations=True,
+                include_statistics=True,
+                seo_optimization=True
+            )
+            b2b_spec = None
         
         # Initialize task status
         task_status[task_id] = {
@@ -1084,7 +1108,7 @@ def ai_content_generate():
         # Start background content generation
         thread = threading.Thread(
             target=run_ai_content_generation,
-            args=(task_id, google_file_id, content_spec)
+            args=(task_id, google_file_id, content_spec, b2b_spec, keyword)
         )
         
         thread.daemon = True
@@ -1101,7 +1125,7 @@ def ai_content_generate():
         logger.error(f"Error starting AI content generation: {e}")
         return jsonify({'error': f'Failed to start content generation: {str(e)}'}), 500
 
-def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: ContentSpecification):
+def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: ContentSpecification, b2b_spec: Any = None, keyword: str = ""):
     """Run AI content generation process in background"""
     start_time = time.time()
     
@@ -1139,7 +1163,15 @@ def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: C
         
         # Step 5: Generate AI content
         update_task_status(task_id, 'running', 'Generating AI content...', 80, 5)
-        content_result = ai_content_agent.generate_content(keywords_data, research_analysis, content_spec)
+        
+        if b2b_spec and keyword:
+            # Use B2B marketing content generation
+            content_result = ai_content_agent.generate_b2b_marketing_content(
+                keyword, keywords_data, research_analysis, b2b_spec
+            )
+        else:
+            # Use standard content generation
+            content_result = ai_content_agent.generate_content(keywords_data, research_analysis, content_spec)
         
         if not content_result.generation_successful:
             update_task_status(task_id, 'error', f'Content generation failed: {content_result.content}', 80)
@@ -1147,9 +1179,18 @@ def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: C
         
         # Step 6: Create final document
         update_task_status(task_id, 'running', 'Creating final document...', 95, 6)
-        document_result = ai_content_agent.create_comprehensive_document(
-            content_result, keywords_data, research_analysis, content_spec
-        )
+        
+        if b2b_spec:
+            # Create B2B marketing document
+            document_result = ai_content_agent.create_comprehensive_document(
+                content_result, keywords_data, research_analysis, 
+                ContentSpecification(content_type=b2b_spec.content_type) if hasattr(ai_content_agent, 'ContentSpecification') else None
+            )
+        else:
+            # Create standard document
+            document_result = ai_content_agent.create_comprehensive_document(
+                content_result, keywords_data, research_analysis, content_spec
+            )
         
         # Calculate elapsed time
         elapsed_time = time.time() - start_time

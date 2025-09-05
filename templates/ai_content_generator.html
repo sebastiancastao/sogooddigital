@@ -80,6 +80,8 @@
                                     <option value="" disabled>Select content type...</option>
                                     <option value="blog_post" selected>📝 Blog Post - Engaging web articles</option>
                                     <option value="article">📄 In-depth Article - Comprehensive analysis</option>
+                                    <option value="b2b_blog_package">🎯 B2B Blog Package - Authority-first marketing (800-1200 words + FAQ)</option>
+                                    <option value="b2b_linkedin_post">💼 B2B LinkedIn Post - Strategic thought leadership (≤150 words)</option>
                                     <option value="social_media">📱 Social Media Content - Platform optimized</option>
                                     <option value="marketing_copy">🎯 Marketing Copy - Conversion focused</option>
                                     <option value="whitepaper">📋 Whitepaper - Authoritative research</option>
@@ -163,6 +165,71 @@
                                     <option value="consumers">🛒 Consumers - End customers</option>
                                     <option value="industry_specialists">🏭 Industry Specialists - Sector specific</option>
                                 </select>
+                            </div>
+
+                            <!-- B2B Marketing Specific Fields -->
+                            <div id="b2bFields" style="display: none;">
+                                <div class="col-md-6 mb-4">
+                                    <label for="keyword" class="form-label">
+                                        <i class="bi bi-key me-2"></i>Target Keyword <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control glass-input" 
+                                           id="keyword" 
+                                           name="keyword" 
+                                           placeholder="e.g., B2B saas marketing kpis"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-placement="top"
+                                           title="Single keyword or keyword phrase for B2B content focus">
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Enter the primary keyword or phrase for authority-first content generation.
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label for="author_name" class="form-label">
+                                        <i class="bi bi-person me-2"></i>Author Name
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control glass-input" 
+                                           id="author_name" 
+                                           name="author_name" 
+                                           value="Ilia Tretiakov"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-placement="top"
+                                           title="Author name for the content byline">
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label for="author_role" class="form-label">
+                                        <i class="bi bi-briefcase me-2"></i>Author Role
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control glass-input" 
+                                           id="author_role" 
+                                           name="author_role" 
+                                           value="B2B Growth Strategy Expert"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-placement="top"
+                                           title="Professional role/title for author credibility">
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label for="author_years" class="form-label">
+                                        <i class="bi bi-calendar-check me-2"></i>Years of Experience
+                                    </label>
+                                    <input type="number" 
+                                           class="form-control glass-input" 
+                                           id="author_years" 
+                                           name="author_years" 
+                                           value="10"
+                                           min="1"
+                                           max="50"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-placement="top"
+                                           title="Years of experience in the field">
+                                </div>
                             </div>
 
                             <!-- Additional Instructions -->
@@ -329,6 +396,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const contentTypeDescriptions = {
         'blog_post': 'Perfect for engaging web content, SEO-optimized articles, and thought leadership pieces.',
         'article': 'Comprehensive, research-backed content for in-depth analysis and professional publications.',
+        'b2b_blog_package': 'Authority-first B2B marketing content with 800-1200 word blog + FAQ section + author line. Follows strict compliance rules with peer-reviewed sources only.',
+        'b2b_linkedin_post': 'Strategic B2B LinkedIn post (≤150 words) with data-driven insights, no emojis, designed for decision-makers and thought leadership.',
         'social_media': 'Platform-optimized content for Facebook, LinkedIn, Twitter, and Instagram campaigns.',
         'marketing_copy': 'Conversion-focused content for ads, landing pages, and sales materials.',
         'whitepaper': 'Authoritative, research-heavy documents that establish industry expertise.',
@@ -347,9 +416,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Content type change handler
     const contentTypeSelect = document.getElementById('content_type');
     const contentTypeDesc = document.getElementById('contentTypeDesc');
+    const b2bFields = document.getElementById('b2bFields');
+    const keywordField = document.getElementById('keyword');
     
     contentTypeSelect.addEventListener('change', function() {
         const selectedType = this.value;
+        
+        // Show/hide B2B specific fields
+        if (selectedType === 'b2b_blog_package' || selectedType === 'b2b_linkedin_post') {
+            b2bFields.style.display = 'block';
+            keywordField.required = true;
+        } else {
+            b2bFields.style.display = 'none';
+            keywordField.required = false;
+        }
+        
         if (selectedType && contentTypeDescriptions[selectedType]) {
             contentTypeDesc.innerHTML = `<small class="text-info">${contentTypeDescriptions[selectedType]}</small>`;
         } else {
@@ -385,6 +466,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 firstInvalidField.focus();
                 firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
+            return;
+        }
+        
+        // Additional validation for B2B content types
+        const contentType = document.getElementById('content_type').value;
+        const keyword = document.getElementById('keyword').value.trim();
+        
+        if ((contentType === 'b2b_blog_package' || contentType === 'b2b_linkedin_post') && !keyword) {
+            showErrorMessage('Keyword is required for B2B marketing content types');
+            document.getElementById('keyword').focus();
             return;
         }
 
