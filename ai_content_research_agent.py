@@ -290,7 +290,7 @@ class AIContentResearchAgent:
         }
     
     def _extract_keywords_enhanced_fallback(self, file_id: str) -> Dict[str, Any]:
-        """Enhanced fallback keyword extraction with file_id simulation"""
+        """Enhanced fallback keyword extraction with file_id simulation r"""
         
         # Simulate more sophisticated keyword extraction based on file_id patterns
         business_keywords = [
