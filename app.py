@@ -1256,6 +1256,36 @@ def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: C
         
     except Exception as e:
         logger.error(f"Error in AI content generation pipeline: {e}")
+        
+        # Store error results to prevent template errors
+        task_results[task_id] = {
+            'content_generated': {
+                'content': f'Error generating content: {str(e)}',
+                'content_type': 'error',
+                'word_count': 0,
+                'generation_successful': False,
+                'generated_image': None
+            },
+            'generation_params': {
+                'content_type': 'error',
+                'content_tone': 'professional',
+                'content_length': 'medium',
+                'target_audience': 'general',
+                'additional_instructions': ''
+            },
+            'research_summary': {
+                'keywords_extracted': 0,
+                'papers_processed': 0,
+                'research_quality': 'error'
+            },
+            'final_document': {
+                'success': False,
+                'filename': None
+            },
+            'pipeline_time': 0,
+            'bright_data_stats': {}
+        }
+        
         update_task_status(task_id, 'error', f'Content generation error: {str(e)}', task_status[task_id]['progress'])
 
 @app.route('/ai-content/progress/<task_id>')
