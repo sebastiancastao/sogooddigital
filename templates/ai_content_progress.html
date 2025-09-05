@@ -117,6 +117,16 @@
 
                         <div class="step" id="step-6">
                             <div class="step-icon">
+                                <i class="bi bi-image"></i>
+                            </div>
+                            <div class="step-content">
+                                <h6 class="step-title">Generate Image</h6>
+                                <p class="step-description">Creating conceptual minimalistic illustration using AI.</p>
+                            </div>
+                        </div>
+
+                        <div class="step" id="step-7">
+                            <div class="step-icon">
                                 <i class="bi bi-file-earmark-check"></i>
                             </div>
                             <div class="step-content">
@@ -246,15 +256,25 @@ function updateProgressDisplay(data) {
     
     // Update step status
     const currentStep = data.step || 0;
-    for (let i = 1; i <= 6; i++) {
+    const totalSteps = data.total_steps || 7;
+    
+    for (let i = 1; i <= totalSteps; i++) {
         const stepElement = document.getElementById(`step-${i}`);
-        stepElement.classList.remove('active', 'completed');
-        
-        if (i < currentStep) {
-            stepElement.classList.add('completed');
-        } else if (i === currentStep) {
-            stepElement.classList.add('active');
+        if (stepElement) {
+            stepElement.classList.remove('active', 'completed');
+            
+            if (i < currentStep) {
+                stepElement.classList.add('completed');
+            } else if (i === currentStep) {
+                stepElement.classList.add('active');
+            }
         }
+    }
+    
+    // Hide step 6 (image generation) if not needed
+    const step6 = document.getElementById('step-6');
+    if (step6 && totalSteps < 7) {
+        step6.style.display = 'none';
     }
     
     // Show statistics if available

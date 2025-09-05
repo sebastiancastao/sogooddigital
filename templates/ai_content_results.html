@@ -68,12 +68,65 @@
                                 <div class="stat-label">Keywords Used</div>
                             </div>
                         </div>
+                        {% if results.content_generated and results.content_generated.generated_image and results.content_generated.generated_image.generation_successful %}
+                        <div class="col-lg-3 col-md-6">
+                            <div class="stat-card text-center">
+                                <div class="stat-icon">
+                                    <i class="bi bi-image text-purple"></i>
+                                </div>
+                                <div class="stat-value">1</div>
+                                <div class="stat-label">Image Generated</div>
+                            </div>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Generated Image Display -->
+    {% if results.content_generated and results.content_generated.generated_image and results.content_generated.generated_image.generation_successful %}
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+            <div class="glass-card">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3">
+                        <i class="bi bi-image me-2"></i>Generated Conceptual Image
+                    </h4>
+                    
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="image-container">
+                                <img src="{{ results.content_generated.generated_image.image_url }}" 
+                                     alt="Generated conceptual illustration" 
+                                     class="img-fluid rounded shadow-sm"
+                                     style="max-height: 300px; width: auto;">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="image-details">
+                                <h6 class="fw-semibold mb-2">
+                                    <i class="bi bi-lightbulb me-1"></i>Concept: {{ results.content_generated.generated_image.concept_extracted }}
+                                </h6>
+                                <p class="text-muted mb-3">
+                                    <i class="bi bi-palette me-1"></i>Style: {{ results.content_generated.generated_image.image_style.title() }} • 
+                                    <i class="bi bi-clock me-1"></i>Generated in {{ "%.1f"|format(results.content_generated.generated_image.generation_time) }}s
+                                </p>
+                                {% if results.content_generated.generated_image.image_filename %}
+                                <a href="{{ url_for('download_image', filename=results.content_generated.generated_image.image_filename) }}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-download me-1"></i>Download Image
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Generated Content Preview -->
     {% if results.content_generated and results.content_generated.generation_successful %}
@@ -437,6 +490,41 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.75rem;
 }
 
+/* Color for image icon */
+.text-purple {
+    color: #8b5cf6 !important;
+}
+
+/* Image display styling */
+.image-container {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.image-container img {
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.image-container img:hover {
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: scale(1.02);
+}
+
+.image-details {
+    padding: 1rem 0;
+}
+
+.image-details h6 {
+    color: var(--bs-primary);
+    margin-bottom: 0.5rem;
+}
+
+.image-details p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
 @media (max-width: 768px) {
     .stat-card {
         margin-bottom: 1rem;
@@ -449,6 +537,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .download-card .text-start {
         text-align: center !important;
+    }
+    
+    .image-container {
+        margin-bottom: 2rem;
+    }
+    
+    .image-details {
+        text-align: center;
     }
 }
 </style>

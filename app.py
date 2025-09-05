@@ -49,7 +49,7 @@ except ImportError as e:
 
 # Import AI Content Research Agent (optional - will handle import errors)
 try:
-    from ai_content_research_agent import AIContentResearchAgent, ContentSpecification, ContentResult
+    from ai_content_research_agent import AIContentResearchAgent, ContentSpecification, ContentResult, ImageGenerationResult
     AI_CONTENT_AVAILABLE = True
     logger.info("✅ AI Content Research Agent imported successfully")
 except ImportError as e:
@@ -57,6 +57,7 @@ except ImportError as e:
     AIContentResearchAgent = None
     ContentSpecification = None
     ContentResult = None
+    ImageGenerationResult = None
     AI_CONTENT_AVAILABLE = False
 
 # Flask app configuration
@@ -707,6 +708,22 @@ def download_file(filename):
         flash('Download failed', 'error')
         return redirect(url_for('index'))
 
+@app.route('/download/image/<path:filename>')
+def download_image(filename):
+    """Download generated conceptual image"""
+    try:
+        # Images are stored in generated_images directory
+        file_path = os.path.join(os.getcwd(), filename)
+        if os.path.exists(file_path):
+            return send_file(file_path, as_attachment=True, download_name=os.path.basename(filename))
+        else:
+            flash('Image not found', 'error')
+            return redirect(url_for('index'))
+    except Exception as e:
+        logger.error(f"Error downloading image: {e}")
+        flash('Image download failed', 'error')
+        return redirect(url_for('index'))
+
 # ================================
 # TASK ASSIGNMENT ROUTES
 # ================================
@@ -1041,6 +1058,10 @@ def ai_content_generate():
         author_role = request.form.get('author_role', 'B2B Growth Strategy Expert').strip()
         author_years = int(request.form.get('author_years', 10))
         
+        # Image generation options
+        generate_image = request.form.get('generate_image') == 'true'
+        image_style = request.form.get('image_style', 'minimalistic')
+        
         # Validate inputs
         if not google_file_id:
             return jsonify({'error': 'Google File ID is required'}), 400
@@ -1091,10 +1112,11 @@ def ai_content_generate():
                 'Processing research papers',
                 'Analyzing research content',
                 'Generating AI content',
+                'Generating conceptual image' if generate_image else 'Finalizing content',
                 'Creating final document'
             ],
             'current_step': 0,
-            'total_steps': 6,
+            'total_steps': 7 if generate_image else 6,
             'details': [],
             'type': 'ai_content',
             'content_type': content_type,
@@ -1108,7 +1130,7 @@ def ai_content_generate():
         # Start background content generation
         thread = threading.Thread(
             target=run_ai_content_generation,
-            args=(task_id, google_file_id, content_spec, b2b_spec, keyword)
+            args=(task_id, google_file_id, content_spec, b2b_spec, keyword, generate_image, image_style)
         )
         
         thread.daemon = True
@@ -1125,12 +1147,19 @@ def ai_content_generate():
         logger.error(f"Error starting AI content generation: {e}")
         return jsonify({'error': f'Failed to start content generation: {str(e)}'}), 500
 
-def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: ContentSpecification, b2b_spec: Any = None, keyword: str = ""):
+def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: ContentSpecification, b2b_spec: Any = None, keyword: str = "", generate_image: bool = False, image_style: str = "minimalistic"):
     """Run AI content generation process in background"""
     start_time = time.time()
     
     try:
         logger.info(f"🚀 Starting AI content generation for task {task_id}")
+        
+        # Configure image generation
+        if ai_content_agent and generate_image:
+            ai_content_agent.image_generation_enabled = True
+            logger.info(f"🎨 Image generation enabled with style: {image_style}")
+        elif ai_content_agent:
+            ai_content_agent.image_generation_enabled = False
         
         # Step 1: Extract keywords from Google file
         update_task_status(task_id, 'running', 'Extracting keywords from Google Doc...', 15, 1)
@@ -1177,8 +1206,9 @@ def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: C
             update_task_status(task_id, 'error', f'Content generation failed: {content_result.content}', 80)
             return
         
-        # Step 6: Create final document
-        update_task_status(task_id, 'running', 'Creating final document...', 95, 6)
+        # Step 6: Create final document (or step 7 if image generation)
+        final_step = 7 if generate_image else 6
+        update_task_status(task_id, 'running', 'Creating final document...', 95, final_step)
         
         if b2b_spec:
             # Create B2B marketing document
@@ -1220,7 +1250,8 @@ def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: C
         }
         
         # Final completion
-        update_task_status(task_id, 'completed', 'AI content generation completed successfully!', 100, 7)
+        final_completion_step = 8 if generate_image else 7
+        update_task_status(task_id, 'completed', 'AI content generation completed successfully!', 100, final_completion_step)
         logger.info(f"✅ AI content generation completed for task {task_id} in {elapsed_time:.2f}s")
         
     except Exception as e:
