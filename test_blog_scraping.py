@@ -15,10 +15,10 @@ def test_blog_scraping():
         openai_api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
     )
     
-    print("🔍 Testing Sieco-Tech blog scraping...")
+    print("🔍 Testing So Good Digital blog scraping...")
     
     # Test blog scraping
-    blog_posts = agent.scrape_siecotech_blogs()
+    blog_posts = agent.scrape_sogooddigital_blogs()
     
     print(f"✅ Scraped {len(blog_posts)} blog posts:")
     for i, post in enumerate(blog_posts[:3], 1):  # Show first 3 posts
@@ -40,25 +40,25 @@ def test_internal_link_generation():
     
     # Sample content for testing
     sample_content = """
-    Electric sub-meters are revolutionizing energy management in commercial buildings. 
-    These advanced metering solutions provide real-time monitoring capabilities that help 
-    facility managers optimize energy consumption and reduce costs.
+    Content marketing is revolutionizing how B2B companies connect with their target audiences. 
+    These strategic content solutions provide measurable business value across the entire 
+    buying journey, helping organizations build trust and establish thought leadership.
     
-    The implementation of smart energy meters requires careful planning and consideration 
-    of various technical factors. Measurement Canada approval ensures that these devices 
-    meet strict accuracy standards and regulatory compliance requirements.
+    The implementation of effective content marketing requires careful planning and consideration 
+    of various strategic factors. Trust-based marketing ensures that content resonates with 
+    prospects and positions your brand as a trusted problem-solver.
     
-    Modern sub-metering technology integrates seamlessly with building management systems, 
-    providing comprehensive energy data analytics. This data-driven approach enables 
-    organizations to make informed decisions about energy efficiency improvements.
+    Modern content marketing integrates seamlessly with sales enablement strategies, 
+    providing comprehensive lead nurturing capabilities. This data-driven approach enables 
+    organizations to make informed decisions about marketing investments and ROI.
     
-    The future of energy management lies in IoT-based solutions that offer unprecedented 
-    visibility into power consumption patterns. These systems not only monitor usage but 
-    also provide predictive analytics for proactive energy optimization.
+    The future of B2B marketing lies in content strategies that offer unprecedented 
+    visibility into customer journeys. These systems not only generate leads but 
+    also provide predictive analytics for proactive customer engagement.
     """
     
     # Scrape blogs first
-    blog_posts = agent.scrape_siecotech_blogs()
+    blog_posts = agent.scrape_sogooddigital_blogs()
     
     if blog_posts:
         # Test internal link analysis
@@ -85,9 +85,9 @@ def test_full_content_generation():
     
     # Mock keywords data
     keywords_data = {
-        'primary_keywords': ['electric sub-meters', 'energy management', 'smart metering'],
-        'secondary_keywords': ['IoT solutions', 'energy efficiency', 'building automation'],
-        'research_topics': ['smart energy systems', 'commercial metering solutions']
+        'primary_keywords': ['content marketing', 'B2B marketing', 'digital marketing'],
+        'secondary_keywords': ['sales enablement', 'lead generation', 'marketing strategy'],
+        'research_topics': ['content strategy', 'B2B marketing automation']
     }
     
     # Mock research analysis

@@ -1041,45 +1041,55 @@ Create a compelling case study:
     #     
     #     return result
     
-    def scrape_siecotech_blogs(self) -> List[Dict[str, Any]]:
-        """Scrape Sieco-Tech blog posts and extract content for internal linking"""
+    def scrape_sogooddigital_blogs(self) -> List[Dict[str, Any]]:
+        """Scrape So Good Digital blog posts and extract content for internal linking"""
         try:
             import requests
             from bs4 import BeautifulSoup
             
-            logger.info("🔍 Scraping Sieco-Tech blog posts...")
+            logger.info("🔍 Scraping So Good Digital blog posts...")
             
             # Scrape the main blog page
-            response = requests.get('https://siecotech.com/blogs', timeout=30)
+            response = requests.get('https://sogooddigital.com/blog/', timeout=30)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.content, 'html.parser')
             blog_posts = []
             
-            # Find blog post links and titles
+            # Find blog post links and titles - look for article links
             blog_links = soup.find_all('a', href=True)
             
             for link in blog_links:
                 href = link.get('href')
-                if href and '/blogs/' in href and href != '/blogs':
+                if href and '/blog/' in href and href != '/blog/' and href != '/blog':
                     # Extract individual blog post
                     try:
-                        post_response = requests.get(f'https://siecotech.com{href}', timeout=30)
+                        # Handle relative URLs
+                        if href.startswith('/'):
+                            full_url = f'https://sogooddigital.com{href}'
+                        else:
+                            full_url = href
+                            
+                        post_response = requests.get(full_url, timeout=30)
                         post_response.raise_for_status()
                         
                         post_soup = BeautifulSoup(post_response.content, 'html.parser')
                         
-                        # Extract title
-                        title = post_soup.find('h1') or post_soup.find('title')
+                        # Extract title - look for h1 or h2 with article title
+                        title = post_soup.find('h1') or post_soup.find('h2') or post_soup.find('title')
                         title_text = title.get_text().strip() if title else 'Untitled'
                         
                         # Extract content (look for main content areas)
-                        content_divs = post_soup.find_all(['div', 'article', 'section'], class_=lambda x: x and any(word in x.lower() for word in ['content', 'post', 'article', 'body']))
+                        content_divs = post_soup.find_all(['div', 'article', 'section', 'main'], class_=lambda x: x and any(word in x.lower() for word in ['content', 'post', 'article', 'body', 'entry']))
+                        
+                        # If no specific content divs found, look for paragraphs
+                        if not content_divs:
+                            content_divs = post_soup.find_all('p')
                         
                         content_text = ""
                         for div in content_divs:
                             # Remove script and style elements
-                            for script in div(["script", "style"]):
+                            for script in div(["script", "style", "nav", "header", "footer"]):
                                 script.decompose()
                             content_text += div.get_text() + " "
                         
@@ -1089,7 +1099,7 @@ Create a compelling case study:
                         if content_text and len(content_text) > 100:  # Only include substantial content
                             blog_posts.append({
                                 'title': title_text,
-                                'url': f'https://siecotech.com{href}',
+                                'url': full_url,
                                 'content': content_text[:2000],  # Limit content length
                                 'excerpt': content_text[:300] + "..." if len(content_text) > 300 else content_text
                             })
@@ -1098,11 +1108,11 @@ Create a compelling case study:
                         logger.warning(f"Failed to scrape individual blog post {href}: {e}")
                         continue
             
-            logger.info(f"✅ Successfully scraped {len(blog_posts)} blog posts from Sieco-Tech")
+            logger.info(f"✅ Successfully scraped {len(blog_posts)} blog posts from So Good Digital")
             return blog_posts
             
         except Exception as e:
-            logger.error(f"❌ Failed to scrape Sieco-Tech blogs: {e}")
+            logger.error(f"❌ Failed to scrape So Good Digital blogs: {e}")
             return []
 
     def analyze_blog_content_for_links(self, content: str, blog_posts: List[Dict[str, Any]]) -> List[Dict[str, str]]:
@@ -1179,8 +1189,8 @@ Create a compelling case study:
         """Add 2 external links with optimized anchor phrases using markdown format, avoiding intro and conclusion"""
         
         try:
-            # Scrape Sieco-Tech blogs for internal linking
-            blog_posts = self.scrape_siecotech_blogs()
+            # Scrape So Good Digital blogs for internal linking
+            blog_posts = self.scrape_sogooddigital_blogs()
             
             # Use OpenAI to analyze content and suggest internal links
             internal_link_suggestions = self.analyze_blog_content_for_links(content, blog_posts)
