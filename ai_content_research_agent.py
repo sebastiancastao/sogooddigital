@@ -65,18 +65,18 @@ class ContentSpecification:
     include_statistics: bool = True
     seo_optimization: bool = True
 
-@dataclass
-class ImageGenerationResult:
-    """Data class for AI image generation results"""
-    image_url: str = ""
-    image_prompt: str = ""
-    image_filename: str = ""
-    generation_successful: bool = False
-    generation_time: float = 0.0
-    image_style: str = "minimalistic"
-    concept_extracted: str = ""
-    error_message: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+# @dataclass
+# class ImageGenerationResult:
+#     """Data class for AI image generation results"""
+#     image_url: str = ""
+#     image_prompt: str = ""
+#     image_filename: str = ""
+#     generation_successful: bool = False
+#     generation_time: float = 0.0
+#     image_style: str = "minimalistic"
+#     concept_extracted: str = ""
+#     error_message: str = ""
+#     metadata: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class ContentResult:
@@ -92,7 +92,7 @@ class ContentResult:
     research_quality: str = "unknown"
     citations_included: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    generated_image: Optional[ImageGenerationResult] = None
+    # generated_image: Optional[ImageGenerationResult] = None
 
 class AIContentResearchAgent:
     """
@@ -191,11 +191,11 @@ class AIContentResearchAgent:
             'successful_image_generations': 0
         }
         
-        # Image generation settings
-        self.image_generation_enabled = True
-        self.image_model = "dall-e-3"
-        self.image_size = "1024x1024"
-        self.image_quality = "standard"
+        # Image generation settings (DISABLED)
+        # self.image_generation_enabled = True
+        # self.image_model = "dall-e-3"
+        # self.image_size = "1024x1024"
+        # self.image_quality = "standard"
     
     def _load_content_templates(self) -> Dict[str, Dict]:
         """Load content generation templates and configurations"""
@@ -525,11 +525,16 @@ class AIContentResearchAgent:
                 }
             )
             
-            # Generate conceptual image if enabled
-            if self.image_generation_enabled:
-                logger.info("🎨 Generating conceptual image for B2B content...")
-                image_result = self.generate_conceptual_image(full_content, b2b_spec.content_type, keywords_data)
-                result.generated_image = image_result
+            # Generate conceptual image if enabled (DISABLED)
+            # if self.image_generation_enabled:
+            #     logger.info("🎨 Generating conceptual image for B2B content...")
+            #     image_result = self.generate_conceptual_image(full_content, b2b_spec.content_type, keywords_data)
+            #     result.generated_image = image_result
+            
+            # Add external links to B2B content
+            logger.info("🔗 Adding external links to B2B content...")
+            linked_content = self.add_external_links_to_content(full_content, keywords_data)
+            result.content = linked_content
             
             logger.info(f"✅ B2B marketing content generated successfully: {b2b_result.word_count} words")
             logger.info(f"📊 Compliance checks: {sum(b2b_result.compliance_check.values())}/{len(b2b_result.compliance_check)} passed")
@@ -626,11 +631,16 @@ class AIContentResearchAgent:
                 }
             )
             
-            # Generate conceptual image if enabled
-            if self.image_generation_enabled:
-                logger.info("🎨 Generating conceptual image for content...")
-                image_result = self.generate_conceptual_image(generated_content, content_spec.content_type, keywords_data)
-                result.generated_image = image_result
+            # Generate conceptual image if enabled (DISABLED)
+            # if self.image_generation_enabled:
+            #     logger.info("🎨 Generating conceptual image for content...")
+            #     image_result = self.generate_conceptual_image(generated_content, content_spec.content_type, keywords_data)
+            #     result.generated_image = image_result
+            
+            # Add external links to content
+            logger.info("🔗 Adding external links to content...")
+            linked_content = self.add_external_links_to_content(generated_content, keywords_data)
+            result.content = linked_content
             
             logger.info(f"Content generated successfully: {word_count} words in {generation_time:.2f}s")
             return result
@@ -905,161 +915,306 @@ Create a compelling case study:
         
         return min(score, 1.0)  # Cap at 1.0
     
-    def extract_visual_concept_from_content(self, content: str, keywords_data: Dict[str, Any]) -> str:
-        """Extract key visual concepts from generated content for image generation"""
+    # def extract_visual_concept_from_content(self, content: str, keywords_data: Dict[str, Any]) -> str:
+    #     """Extract key visual concepts from generated content for image generation"""
+    #     
+    #     # Extract primary keywords for visual concepts
+    #     primary_keywords = keywords_data.get('primary_keywords', [])[:3]
+    #     
+    #     # Look for key concepts in the content
+    #     concept_indicators = [
+    #         'strategy', 'framework', 'process', 'system', 'growth', 'transformation',
+    #         'innovation', 'optimization', 'analysis', 'methodology', 'approach',
+    #         'solution', 'implementation', 'performance', 'efficiency', 'success'
+    #     ]
+    #     
+    #     # Find the most relevant concepts
+    #     content_lower = content.lower()
+    #     found_concepts = [concept for concept in concept_indicators if concept in content_lower]
+    #     
+    #     # Create a conceptual description
+    #     if primary_keywords and found_concepts:
+    #         main_keyword = primary_keywords[0]
+    #         main_concept = found_concepts[0] if found_concepts else 'strategy'
+    #         
+    #         return f"{main_keyword} {main_concept}"
+    #     elif primary_keywords:
+    #         return primary_keywords[0]
+    #     else:
+    #         return "business strategy concept"
+    
+    # def create_minimalistic_image_prompt(self, visual_concept: str, content_type: str) -> str:
+    #     """Create an optimized prompt for minimalistic conceptual images"""
+    #     
+    #     # Base style elements for minimalistic design
+    #     base_style = "minimalistic, clean, professional, conceptual"
+    #     
+    #     # Content type specific visual elements
+    #     content_visual_elements = {
+    #         'blog_post': 'editorial illustration, thought leadership visual',
+    #         'article': 'analytical diagram, research visualization', 
+    #         'b2b_blog_package': 'corporate infographic, business strategy visual',
+    #         'b2b_linkedin_post': 'social media graphic, professional insight visual',
+    #         'whitepaper': 'technical diagram, authoritative visualization',
+    #         'case_study': 'success story visual, results infographic',
+    #         'marketing_copy': 'conversion-focused graphic, persuasive visual'
+    #     }
+    #     
+    #     visual_elements = content_visual_elements.get(content_type, 'business concept illustration')
+    #     
+    #     # Create the optimized prompt
+    #     prompt = f"""
+    #     Create a {base_style} illustration representing {visual_concept}.
+    #     Style: {visual_elements}, geometric shapes, subtle gradients, limited color palette.
+    #     Design elements: Clean lines, negative space, abstract symbols, modern typography hints.
+    #     Color scheme: Professional blues and grays with subtle accent colors.
+    #     Composition: Centered, balanced, uncluttered, suitable for business presentations.
+    #     Avoid: Realistic photos, complex details, busy backgrounds, multiple focal points.
+    #     Focus: Single clear concept, visual metaphor, business-appropriate aesthetic.
+    #     """
+    #     
+    #     return prompt.strip()
+    
+    # def generate_conceptual_image(self, content: str, content_type: str, keywords_data: Dict[str, Any]) -> ImageGenerationResult:
+    #     """Generate a conceptual minimalistic image based on content"""
+    #     
+    #     start_time = time.time()
+    #     result = ImageGenerationResult()
+    #     
+    #     if not self.client or not self.image_generation_enabled:
+    #         result.error_message = "Image generation not available"
+    #         return result
+    #     
+    #     try:
+    #         logger.info("🎨 Starting conceptual image generation...")
+    #         
+    #         # Extract visual concept from content
+    #         visual_concept = self.extract_visual_concept_from_content(content, keywords_data)
+    #         result.concept_extracted = visual_concept
+    #         
+    #         # Create optimized minimalistic prompt
+    #         image_prompt = self.create_minimalistic_image_prompt(visual_concept, content_type)
+    #         result.image_prompt = image_prompt
+    #         
+    #         logger.info(f"🎨 Generating image for concept: {visual_concept}")
+    #         
+    #         # Generate image with OpenAI DALL-E
+    #         response = self.client.images.generate(
+    #             model=self.image_model,
+    #             prompt=image_prompt,
+    #             size=self.image_size,
+    #             quality=self.image_quality,
+    #             n=1
+    #         )
+    #         
+    #         if response.data and len(response.data) > 0:
+    #             result.image_url = response.data[0].url
+    #             result.generation_successful = True
+    #             result.generation_time = time.time() - start_time
+    #             result.image_style = "minimalistic"
+    #             
+    #             # Download and save the image
+    #             image_filename = self._download_and_save_image(result.image_url, visual_concept)
+    #             result.image_filename = image_filename
+    #             
+    #             # Update statistics
+    #             self.generation_stats['images_generated'] += 1
+    #             self.generation_stats['successful_image_generations'] += 1
+    #             
+    #             logger.info(f"✅ Image generated successfully in {result.generation_time:.2f}s")
+    #             logger.info(f"🖼️ Image saved as: {image_filename}")
+    #             
+    #         else:
+    #             result.error_message = "No image data received from OpenAI"
+    #             
+    #     except Exception as e:
+    #         result.error_message = str(e)
+    #         result.generation_time = time.time() - start_time
+    #         logger.error(f"❌ Image generation failed: {e}")
+    #     
+    #     result.metadata = {
+    #         'model_used': self.image_model,
+    #         'size': self.image_size,
+    #         'quality': self.image_quality,
+    #         'timestamp': datetime.now().isoformat()
+    #     }
+    #     
+    #     return result
+    
+    def add_external_links_to_content(self, content: str, keywords_data: Dict[str, Any]) -> str:
+        """Add 2 external links with optimized anchor phrases, avoiding intro and conclusion"""
         
-        # Extract primary keywords for visual concepts
-        primary_keywords = keywords_data.get('primary_keywords', [])[:3]
+        try:
+            # Define high-authority external resources with relevant anchor phrases
+            external_resources = [
+                {
+                    'url': 'https://www.gartner.com/en/research',
+                    'anchor_phrases': ['industry research', 'market analysis', 'technology trends', 'digital transformation insights', 'business intelligence reports']
+                },
+                {
+                    'url': 'https://www.mckinsey.com/featured-insights',
+                    'anchor_phrases': ['strategic insights', 'business strategy', 'operational excellence', 'management consulting', 'industry best practices']
+                },
+                {
+                    'url': 'https://hbr.org/topic/strategy',
+                    'anchor_phrases': ['strategic planning', 'business leadership', 'organizational strategy', 'competitive advantage', 'strategic thinking']
+                },
+                {
+                    'url': 'https://www.forrester.com/research',
+                    'anchor_phrases': ['customer experience', 'technology research', 'market forecasts', 'business transformation', 'digital strategy']
+                },
+                {
+                    'url': 'https://www2.deloitte.com/us/en/insights.html',
+                    'anchor_phrases': ['business insights', 'industry analysis', 'emerging trends', 'digital innovation', 'strategic consulting']
+                }
+            ]
+            
+            # Split content into paragraphs
+            paragraphs = content.split('\n\n')
+            
+            if len(paragraphs) < 4:
+                # Content too short, return as is
+                return content
+            
+            # Avoid first and last paragraphs (intro/conclusion)
+            middle_paragraphs = paragraphs[1:-1]
+            
+            if len(middle_paragraphs) < 2:
+                # Not enough middle content
+                return content
+            
+            # Extract primary keywords for context
+            primary_keywords = keywords_data.get('primary_keywords', [])
+            
+            # Select 2 resources and anchor phrases
+            import random
+            selected_resources = random.sample(external_resources, min(2, len(external_resources)))
+            
+            links_added = 0
+            modified_paragraphs = paragraphs.copy()
+            
+            for i, resource in enumerate(selected_resources):
+                if links_added >= 2:
+                    break
+                
+                # Choose anchor phrase based on content context
+                anchor_phrase = self._select_best_anchor_phrase(resource['anchor_phrases'], primary_keywords, content)
+                
+                # Find a good position in middle paragraphs
+                target_paragraph_idx = 1 + (i * len(middle_paragraphs) // 2)
+                
+                if target_paragraph_idx < len(modified_paragraphs) - 1:
+                    # Insert link naturally into the paragraph
+                    original_paragraph = modified_paragraphs[target_paragraph_idx]
+                    modified_paragraph = self._insert_link_naturally(original_paragraph, resource['url'], anchor_phrase)
+                    
+                    if modified_paragraph != original_paragraph:
+                        modified_paragraphs[target_paragraph_idx] = modified_paragraph
+                        links_added += 1
+            
+            logger.info(f"🔗 Added {links_added} external links to content")
+            return '\n\n'.join(modified_paragraphs)
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to add external links: {e}")
+            return content
+    
+    def _select_best_anchor_phrase(self, anchor_phrases: List[str], keywords: List[str], content: str) -> str:
+        """Select the most contextually relevant anchor phrase"""
         
-        # Look for key concepts in the content
-        concept_indicators = [
-            'strategy', 'framework', 'process', 'system', 'growth', 'transformation',
-            'innovation', 'optimization', 'analysis', 'methodology', 'approach',
-            'solution', 'implementation', 'performance', 'efficiency', 'success'
-        ]
-        
-        # Find the most relevant concepts
         content_lower = content.lower()
-        found_concepts = [concept for concept in concept_indicators if concept in content_lower]
         
-        # Create a conceptual description
-        if primary_keywords and found_concepts:
-            main_keyword = primary_keywords[0]
-            main_concept = found_concepts[0] if found_concepts else 'strategy'
+        # Score anchor phrases based on keyword and content relevance
+        scored_phrases = []
+        for phrase in anchor_phrases:
+            score = 0
+            phrase_words = phrase.lower().split()
             
-            return f"{main_keyword} {main_concept}"
-        elif primary_keywords:
-            return primary_keywords[0]
-        else:
-            return "business strategy concept"
+            # Check if phrase words appear in keywords
+            for word in phrase_words:
+                if any(word in keyword.lower() for keyword in keywords):
+                    score += 2
+                
+                # Check if phrase words appear in content
+                if word in content_lower:
+                    score += 1
+            
+            scored_phrases.append((phrase, score))
+        
+        # Return highest scoring phrase, or first if all score 0
+        best_phrase = max(scored_phrases, key=lambda x: x[1])
+        return best_phrase[0] if best_phrase[1] > 0 else anchor_phrases[0]
     
-    def create_minimalistic_image_prompt(self, visual_concept: str, content_type: str) -> str:
-        """Create an optimized prompt for minimalistic conceptual images"""
+    def _insert_link_naturally(self, paragraph: str, url: str, anchor_phrase: str) -> str:
+        """Insert link naturally into a paragraph"""
         
-        # Base style elements for minimalistic design
-        base_style = "minimalistic, clean, professional, conceptual"
+        # Look for natural insertion points
+        sentences = paragraph.split('. ')
         
-        # Content type specific visual elements
-        content_visual_elements = {
-            'blog_post': 'editorial illustration, thought leadership visual',
-            'article': 'analytical diagram, research visualization', 
-            'b2b_blog_package': 'corporate infographic, business strategy visual',
-            'b2b_linkedin_post': 'social media graphic, professional insight visual',
-            'whitepaper': 'technical diagram, authoritative visualization',
-            'case_study': 'success story visual, results infographic',
-            'marketing_copy': 'conversion-focused graphic, persuasive visual'
-        }
+        if len(sentences) < 2:
+            return paragraph
         
-        visual_elements = content_visual_elements.get(content_type, 'business concept illustration')
-        
-        # Create the optimized prompt
-        prompt = f"""
-        Create a {base_style} illustration representing {visual_concept}.
-        Style: {visual_elements}, geometric shapes, subtle gradients, limited color palette.
-        Design elements: Clean lines, negative space, abstract symbols, modern typography hints.
-        Color scheme: Professional blues and grays with subtle accent colors.
-        Composition: Centered, balanced, uncluttered, suitable for business presentations.
-        Avoid: Realistic photos, complex details, busy backgrounds, multiple focal points.
-        Focus: Single clear concept, visual metaphor, business-appropriate aesthetic.
-        """
-        
-        return prompt.strip()
-    
-    def generate_conceptual_image(self, content: str, content_type: str, keywords_data: Dict[str, Any]) -> ImageGenerationResult:
-        """Generate a conceptual minimalistic image based on content"""
-        
-        start_time = time.time()
-        result = ImageGenerationResult()
-        
-        if not self.client or not self.image_generation_enabled:
-            result.error_message = "Image generation not available"
-            return result
-        
-        try:
-            logger.info("🎨 Starting conceptual image generation...")
+        # Try to find a sentence where the link would fit naturally
+        for i, sentence in enumerate(sentences):
+            sentence_lower = sentence.lower()
             
-            # Extract visual concept from content
-            visual_concept = self.extract_visual_concept_from_content(content, keywords_data)
-            result.concept_extracted = visual_concept
+            # Look for contextual cues where a link would be natural
+            link_cues = [
+                'research shows', 'studies indicate', 'according to', 'experts suggest',
+                'industry leaders', 'best practices', 'proven strategies', 'analysis reveals'
+            ]
             
-            # Create optimized minimalistic prompt
-            image_prompt = self.create_minimalistic_image_prompt(visual_concept, content_type)
-            result.image_prompt = image_prompt
-            
-            logger.info(f"🎨 Generating image for concept: {visual_concept}")
-            
-            # Generate image with OpenAI DALL-E
-            response = self.client.images.generate(
-                model=self.image_model,
-                prompt=image_prompt,
-                size=self.image_size,
-                quality=self.image_quality,
-                n=1
-            )
-            
-            if response.data and len(response.data) > 0:
-                result.image_url = response.data[0].url
-                result.generation_successful = True
-                result.generation_time = time.time() - start_time
-                result.image_style = "minimalistic"
+            if any(cue in sentence_lower for cue in link_cues):
+                # Insert link at the end of this sentence
+                if not sentence.endswith('.'):
+                    sentence += '.'
                 
-                # Download and save the image
-                image_filename = self._download_and_save_image(result.image_url, visual_concept)
-                result.image_filename = image_filename
-                
-                # Update statistics
-                self.generation_stats['images_generated'] += 1
-                self.generation_stats['successful_image_generations'] += 1
-                
-                logger.info(f"✅ Image generated successfully in {result.generation_time:.2f}s")
-                logger.info(f"🖼️ Image saved as: {image_filename}")
-                
-            else:
-                result.error_message = "No image data received from OpenAI"
-                
-        except Exception as e:
-            result.error_message = str(e)
-            result.generation_time = time.time() - start_time
-            logger.error(f"❌ Image generation failed: {e}")
+                linked_sentence = f"{sentence} This aligns with findings from <a href='{url}' target='_blank' rel='noopener'>{anchor_phrase}</a>."
+                sentences[i] = linked_sentence
+                return '. '.join(sentences)
         
-        result.metadata = {
-            'model_used': self.image_model,
-            'size': self.image_size,
-            'quality': self.image_quality,
-            'timestamp': datetime.now().isoformat()
-        }
+        # If no natural insertion point found, add to the middle sentence
+        middle_idx = len(sentences) // 2
+        middle_sentence = sentences[middle_idx]
         
-        return result
-    
-    def _download_and_save_image(self, image_url: str, concept: str) -> str:
-        """Download and save the generated image locally"""
+        if not middle_sentence.endswith('.'):
+            middle_sentence += '.'
         
-        try:
-            # Create images directory if it doesn't exist
-            images_dir = "generated_images"
-            os.makedirs(images_dir, exist_ok=True)
-            
-            # Create filename based on concept and timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            safe_concept = re.sub(r'[^\w\s-]', '', concept).strip()[:30]
-            safe_concept = re.sub(r'[-\s]+', '_', safe_concept)
-            filename = f"concept_{safe_concept}_{timestamp}.png"
-            filepath = os.path.join(images_dir, filename)
-            
-            # Download the image
-            response = requests.get(image_url, timeout=30)
-            response.raise_for_status()
-            
-            # Save the image
-            with open(filepath, 'wb') as f:
-                f.write(response.content)
-            
-            logger.info(f"💾 Image saved locally: {filepath}")
-            return filepath
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to download/save image: {e}")
-            return ""
+        # Add link as a supporting reference
+        linked_sentence = f"{middle_sentence} For more insights on this topic, see <a href='{url}' target='_blank' rel='noopener'>{anchor_phrase}</a>."
+        sentences[middle_idx] = linked_sentence
+        
+        return '. '.join(sentences)
+
+    # def _download_and_save_image(self, image_url: str, concept: str) -> str:
+    #     """Download and save the generated image locally"""
+    #     
+    #     try:
+    #         # Create images directory if it doesn't exist
+    #         images_dir = "generated_images"
+    #         os.makedirs(images_dir, exist_ok=True)
+    #         
+    #         # Create filename based on concept and timestamp
+    #         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    #         safe_concept = re.sub(r'[^\w\s-]', '', concept).strip()[:30]
+    #         safe_concept = re.sub(r'[-\s]+', '_', safe_concept)
+    #         filename = f"concept_{safe_concept}_{timestamp}.png"
+    #         filepath = os.path.join(images_dir, filename)
+    #         
+    #         # Download the image
+    #         response = requests.get(image_url, timeout=30)
+    #         response.raise_for_status()
+    #         
+    #         # Save the image
+    #         with open(filepath, 'wb') as f:
+    #             f.write(response.content)
+    #         
+    #         logger.info(f"💾 Image saved locally: {filepath}")
+    #         return filepath
+    #         
+    #     except Exception as e:
+    #         logger.error(f"❌ Failed to download/save image: {e}")
+    #         return ""
 
     def _update_generation_stats(self, content_type: str, generation_time: float, success: bool):
         """Update generation statistics"""

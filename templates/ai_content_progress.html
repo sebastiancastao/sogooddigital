@@ -117,11 +117,11 @@
 
                         <div class="step" id="step-6">
                             <div class="step-icon">
-                                <i class="bi bi-image"></i>
+                                <i class="bi bi-link-45deg"></i>
                             </div>
                             <div class="step-content">
-                                <h6 class="step-title">Generate Image</h6>
-                                <p class="step-description">Creating conceptual minimalistic illustration using AI.</p>
+                                <h6 class="step-title">Add External Links</h6>
+                                <p class="step-description">Inserting optimized external links for SEO enhancement.</p>
                             </div>
                         </div>
 
@@ -271,11 +271,7 @@ function updateProgressDisplay(data) {
         }
     }
     
-    // Hide step 6 (image generation) if not needed
-    const step6 = document.getElementById('step-6');
-    if (step6 && totalSteps < 7) {
-        step6.style.display = 'none';
-    }
+    // All 7 steps are now always shown (external links step included)
     
     // Show statistics if available
     if (data.content_type) {
