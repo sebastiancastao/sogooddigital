@@ -18,15 +18,12 @@ import time
 from datetime import datetime
 from typing import Dict, Any
 import uuid
-import re # Added for AI Content Generator
 
 # Configure logging first
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file
-from docx import Document # Added for AI Content Generator
-from docx.enum.text import WD_ALIGN_PARAGRAPH # Added for AI Content Generator
 
 # Import research agent (optional - will handle import errors)
 try:
@@ -50,6 +47,18 @@ except ImportError as e:
     TaskAssigner = None
     TASK_ASSIGNMENT_AVAILABLE = False
 
+# Import AI Content Research Agent (optional - will handle import errors)
+try:
+    from ai_content_research_agent import AIContentResearchAgent, ContentSpecification, ContentResult
+    AI_CONTENT_AVAILABLE = True
+    logger.info("✅ AI Content Research Agent imported successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ AI Content Research Agent not available: {e}")
+    AIContentResearchAgent = None
+    ContentSpecification = None
+    ContentResult = None
+    AI_CONTENT_AVAILABLE = False
+
 # Flask app configuration
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
@@ -62,10 +71,11 @@ task_results = {}
 # Global instances
 research_agent = None
 task_assigner = None
+ai_content_agent = None
 
 def initialize_services():
-    """Initialize both research agent and task assigner"""
-    global research_agent, task_assigner
+    """Initialize research agent, task assigner, and AI content agent"""
+    global research_agent, task_assigner, ai_content_agent
 
     # Initialize Research Agent
     if RESEARCH_AGENT_AVAILABLE:
@@ -103,6 +113,20 @@ def initialize_services():
         except Exception as e:
             logger.error(f"❌ Failed to initialize task assigner: {e}")
             task_assigner = None
+    
+    # Initialize AI Content Agent
+    if AI_CONTENT_AVAILABLE:
+        try:
+            ai_content_agent = AIContentResearchAgent(
+                openai_api_key=os.getenv("OPENAI_API_KEY"),
+                google_credentials_path="service-account.json",
+                enable_research=True,
+                skip_google_auth=False
+            )
+            logger.info("✅ AI Content agent initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize AI Content agent: {e}")
+            ai_content_agent = None
 
 def get_configuration_status():
     """Get comprehensive configuration status for both research and task assignment"""
@@ -146,8 +170,10 @@ def index():
     services_status = {
         'research_agent': research_agent is not None,
         'task_assigner': task_assigner is not None,
+        'ai_content_agent': ai_content_agent is not None,
         'research_agent_available': RESEARCH_AGENT_AVAILABLE,
-        'task_assignment_available': TASK_ASSIGNMENT_AVAILABLE
+        'task_assignment_available': TASK_ASSIGNMENT_AVAILABLE,
+        'ai_content_available': AI_CONTENT_AVAILABLE
     }
     
     return render_template('index.html', 
@@ -980,20 +1006,26 @@ def task_assignment_progress(task_id):
     
     return render_template('task_progress.html', task_id=task_id, task=task_status[task_id])
 
-# Routes for AI Content Generator
+# ================================
+# AI CONTENT GENERATOR ROUTES
+# ================================
+
 @app.route('/ai-content')
 def ai_content_generator_form():
-    """Render AI content generator form"""
-    try:
-        return render_template('ai_content_generator.html')
-    except Exception as e:
-        logger.error(f"Error rendering AI content generator form: {e}")
-        flash(f'Error loading AI content generator: {str(e)}', 'error')
+    """AI Content Generator form page"""
+    if not AI_CONTENT_AVAILABLE:
+        flash('AI Content Generator is not available. Please check your setup.', 'error')
         return redirect(url_for('index'))
 
+    research_config, _ = get_configuration_status()
+    return render_template('ai_content_generator.html', config_status=research_config)
+
 @app.route('/ai-content/generate', methods=['POST'])
-def start_ai_content_generation():
-    """Start AI content generation process"""
+def ai_content_generate():
+    """Handle AI content generation request"""
+    if not ai_content_agent:
+        return jsonify({'error': 'AI Content agent not available'}), 500
+        
     try:
         # Get form data
         google_file_id = request.form.get('google_file_id', '').strip()
@@ -1003,612 +1035,210 @@ def start_ai_content_generation():
         target_audience = request.form.get('target_audience', 'general')
         additional_instructions = request.form.get('additional_instructions', '').strip()
         
-        # Validate input
+        # Validate inputs
         if not google_file_id:
             return jsonify({'error': 'Google File ID is required'}), 400
-        
-        # Extract actual file ID if full URL is provided
-        if 'docs.google.com' in google_file_id:
-            match = re.search(r'/document/d/([a-zA-Z0-9-_]+)', google_file_id)
-            if match:
-                google_file_id = match.group(1)
-            else:
-                return jsonify({'error': 'Invalid Google Docs URL format'}), 400
-        
+            
         # Generate unique task ID
         task_id = str(uuid.uuid4())
         
+        # Create content specification
+        content_spec = ContentSpecification(
+            content_type=content_type,
+            content_tone=content_tone,
+            content_length=content_length,
+            target_audience=target_audience,
+            additional_instructions=additional_instructions,
+            include_citations=True,
+            include_statistics=True,
+            seo_optimization=True
+        )
+        
         # Initialize task status
         task_status[task_id] = {
+            'id': task_id,
             'status': 'starting',
-            'message': 'Initializing AI content generation...',
             'progress': 0,
-            'step': 0,
+            'message': 'Initializing AI content generation...',
+            'created_at': datetime.now().isoformat(),
+            'steps': [
+                'Extracting keywords from Google Doc',
+                'Conducting research',
+                'Processing research papers',
+                'Analyzing research content',
+                'Generating AI content',
+                'Creating final document'
+            ],
+            'current_step': 0,
             'total_steps': 6,
-            'start_time': time.time(),
+            'details': [],
+            'type': 'ai_content',
             'content_type': content_type,
             'content_tone': content_tone,
             'content_length': content_length,
-            'target_audience': target_audience
+            'target_audience': target_audience,
+            'elapsed_time': 0,
+            'estimated_remaining': None
         }
         
-        # Start background task
+        # Start background content generation
         thread = threading.Thread(
-            target=run_ai_content_generation_process,
-            args=(task_id, google_file_id, content_type, content_tone, content_length, target_audience, additional_instructions)
+            target=run_ai_content_generation,
+            args=(task_id, google_file_id, content_spec)
         )
+        
         thread.daemon = True
         thread.start()
-        
-        logger.info(f"[AI-CONTENT-{task_id}] Started AI content generation for Google Doc: {google_file_id}")
         
         return jsonify({
             'task_id': task_id,
             'status': 'started',
             'message': 'AI content generation started',
-            'estimated_time': '2-5 minutes'
+            'estimated_time': '5-10 minutes'
         })
         
     except Exception as e:
         logger.error(f"Error starting AI content generation: {e}")
-        return jsonify({'error': f'Failed to start AI content generation: {str(e)}'}), 500
+        return jsonify({'error': f'Failed to start content generation: {str(e)}'}), 500
 
-def run_ai_content_generation_process(task_id: str, google_file_id: str, content_type: str, 
-                                    content_tone: str, content_length: str, target_audience: str, 
-                                    additional_instructions: str):
+def run_ai_content_generation(task_id: str, google_file_id: str, content_spec: ContentSpecification):
     """Run AI content generation process in background"""
+    start_time = time.time()
+    
     try:
-        logger.info(f"[AI-CONTENT-{task_id}] Starting AI content generation process for Google Doc: {google_file_id}")
-        
-        if not research_agent:
-            raise Exception("Research agent not initialized")
+        logger.info(f"🚀 Starting AI content generation for task {task_id}")
         
         # Step 1: Extract keywords from Google file
-        update_task_status(task_id, 'running', 'Extracting keywords from Google file...', 15, 1)
-        logger.info(f"[AI-CONTENT-{task_id}] Step 1: Extracting keywords from Google file")
-        
-        keywords_data = research_agent.extract_keywords_from_google_file(google_file_id)
+        update_task_status(task_id, 'running', 'Extracting keywords from Google Doc...', 15, 1)
+        keywords_data = ai_content_agent.extract_keywords_from_google_file(google_file_id)
         
         if "error" in keywords_data:
-            raise Exception(f"Failed to extract keywords: {keywords_data['error']}")
+            error_msg = keywords_data["error"]
+            logger.error(f"Google file extraction failed: {error_msg}")
+            
+            if "authentication" in error_msg.lower() or "service-account" in error_msg.lower():
+                user_error = "Google authentication failed. Please ensure service-account.json file is properly configured."
+            elif "shared" in error_msg.lower() or "permission" in error_msg.lower():
+                user_error = f"Cannot access Google file. Please share the document with appropriate permissions."
+            else:
+                user_error = f"Failed to extract keywords from Google file: {error_msg}"
+            
+            update_task_status(task_id, 'error', user_error, 15)
+            return
         
-        # Step 2: Perform research based on keywords
-        update_task_status(task_id, 'running', 'Conducting research based on extracted keywords...', 35, 2)
-        logger.info(f"[AI-CONTENT-{task_id}] Step 2: Conducting research")
+        # Step 2: Conduct research
+        update_task_status(task_id, 'running', 'Conducting research based on keywords...', 30, 2)
+        papers = ai_content_agent.conduct_research(keywords_data, max_papers=10)
         
-        # Create search queries from keywords
-        search_queries = []
-        search_queries.extend(keywords_data.get("primary_keywords", [])[:3])
-        search_queries.extend(keywords_data.get("research_topics", [])[:2])
+        # Step 3: Process papers (already done in conduct_research)
+        update_task_status(task_id, 'running', 'Processing research papers...', 50, 3)
         
-        # Search Google Scholar
-        papers = research_agent.search_google_scholar(search_queries)
-        
-        if not papers:
-            logger.warning(f"[AI-CONTENT-{task_id}] No papers found, proceeding with keyword-based content")
-            papers = []
-        
-        # Filter and rank papers
-        filtered_papers = research_agent.filter_and_rank_papers(papers, " ".join(search_queries))
-        
-        # Step 3: Process papers and extract insights
-        update_task_status(task_id, 'running', 'Processing research papers and extracting insights...', 55, 3)
-        logger.info(f"[AI-CONTENT-{task_id}] Step 3: Processing papers")
-        
-        processed_papers = research_agent.download_and_process_pdfs(filtered_papers)
-        
-        # Step 4: Analyze research for content generation
-        update_task_status(task_id, 'running', 'Analyzing research for content generation...', 70, 4)
-        logger.info(f"[AI-CONTENT-{task_id}] Step 4: Analyzing research")
-        
-        analysis_data = research_agent.analyze_research_content(processed_papers)
-        marketing_analysis = research_agent.analyze_marketing_relevance(keywords_data, processed_papers)
+        # Step 4: Analyze research for content
+        update_task_status(task_id, 'running', 'Analyzing research content...', 65, 4)
+        research_analysis = ai_content_agent.analyze_research_for_content(papers, keywords_data)
         
         # Step 5: Generate AI content
-        update_task_status(task_id, 'running', 'Generating AI content based on research...', 85, 5)
-        logger.info(f"[AI-CONTENT-{task_id}] Step 5: Generating AI content")
+        update_task_status(task_id, 'running', 'Generating AI content...', 80, 5)
+        content_result = ai_content_agent.generate_content(keywords_data, research_analysis, content_spec)
         
-        # Generate the AI content
-        content_result = generate_ai_content_from_research(
-            keywords_data, analysis_data, marketing_analysis, processed_papers,
-            content_type, content_tone, content_length, target_audience, additional_instructions
+        if not content_result.generation_successful:
+            update_task_status(task_id, 'error', f'Content generation failed: {content_result.content}', 80)
+            return
+        
+        # Step 6: Create final document
+        update_task_status(task_id, 'running', 'Creating final document...', 95, 6)
+        document_result = ai_content_agent.create_comprehensive_document(
+            content_result, keywords_data, research_analysis, content_spec
         )
         
-        # Step 6: Create final output document
-        update_task_status(task_id, 'running', 'Creating final content document...', 95, 6)
-        logger.info(f"[AI-CONTENT-{task_id}] Step 6: Creating output document")
-        
-        # Create document with the generated content
-        final_document = create_ai_content_document(
-            content_result, keywords_data, analysis_data, content_type, content_tone, content_length
-        )
+        # Calculate elapsed time
+        elapsed_time = time.time() - start_time
         
         # Store results
         task_results[task_id] = {
             'content_generated': content_result,
-            'final_document': final_document,
+            'final_document': document_result,
             'research_summary': {
+                'keywords_extracted': len(keywords_data.get('primary_keywords', [])),
                 'papers_found': len(papers),
-                'papers_analyzed': len(filtered_papers),
-                'papers_processed': len(processed_papers),
-                'keywords_extracted': len(keywords_data.get("primary_keywords", [])),
+                'papers_analyzed': len(papers),
+                'papers_processed': len(papers),
+                'research_quality': research_analysis.get('research_quality', 'unknown')
             },
             'generation_params': {
-                'content_type': content_type,
-                'content_tone': content_tone,
-                'content_length': content_length,
-                'target_audience': target_audience,
-                'additional_instructions': additional_instructions
+                'content_type': content_spec.content_type,
+                'content_tone': content_spec.content_tone,
+                'content_length': content_spec.content_length,
+                'target_audience': content_spec.target_audience,
+                'additional_instructions': content_spec.additional_instructions
             },
-            'bright_data_stats': research_agent.get_bright_data_stats() if research_agent else {}
+            'pipeline_time': elapsed_time,
+            'bright_data_stats': getattr(ai_content_agent, 'research_agent', None) and 
+                               hasattr(ai_content_agent.research_agent, 'get_bright_data_stats') and
+                               ai_content_agent.research_agent.get_bright_data_stats() or {}
         }
         
         # Final completion
-        update_task_status(task_id, 'completed', 'AI content generation completed successfully!', 100, 6)
-        logger.info(f"[AI-CONTENT-{task_id}] AI content generation completed successfully")
+        update_task_status(task_id, 'completed', 'AI content generation completed successfully!', 100, 7)
+        logger.info(f"✅ AI content generation completed for task {task_id} in {elapsed_time:.2f}s")
         
     except Exception as e:
-        logger.error(f"[AI-CONTENT-{task_id}] Error in AI content generation: {e}")
-        update_task_status(task_id, 'error', f'Error: {str(e)}', 0, 0)
-
-def generate_ai_content_from_research(keywords_data, analysis_data, marketing_analysis, papers, 
-                                    content_type, content_tone, content_length, target_audience, additional_instructions):
-    """Generate AI content based on research data"""
-    try:
-        if not research_agent or not research_agent.client:
-            raise Exception("OpenAI client not available")
-        
-        # Prepare research context
-        research_context = {
-            'keywords': keywords_data,
-            'academic_analysis': analysis_data,
-            'marketing_analysis': marketing_analysis,
-            'papers_summary': [
-                {
-                    'title': paper.title,
-                    'authors': paper.authors,
-                    'abstract': paper.abstract,
-                    'key_findings': getattr(paper, 'key_findings', []),
-                    'business_relevance': getattr(paper, 'business_relevance', ''),
-                    'citations': paper.citations
-                } for paper in papers[:5]  # Top 5 papers
-            ]
-        }
-        
-        # Content generation prompts based on type
-        prompts = {
-            'blog_post': create_blog_post_prompt,
-            'article': create_article_prompt,
-            'social_media': create_social_media_prompt,
-            'marketing_copy': create_marketing_copy_prompt,
-            'whitepaper': create_whitepaper_prompt,
-            'email_campaign': create_email_campaign_prompt,
-            'press_release': create_press_release_prompt,
-            'case_study': create_case_study_prompt
-        }
-        
-        if content_type not in prompts:
-            content_type = 'blog_post'  # Default fallback
-        
-        # Generate the content prompt
-        content_prompt = prompts[content_type](
-            research_context, content_tone, content_length, target_audience, additional_instructions
-        )
-        
-        # Generate content with OpenAI
-        response = research_agent.client.chat.completions.create(
-            model=research_agent.model_name,
-            messages=[
-                {
-                    "role": "system", 
-                    "content": f"You are an expert content creator specializing in {content_type.replace('_', ' ')} creation. Create engaging, well-researched content that effectively communicates complex information to the target audience."
-                },
-                {
-                    "role": "user", 
-                    "content": content_prompt
-                }
-            ],
-            temperature=0.7,
-            max_tokens=4000
-        )
-        
-        generated_content = response.choices[0].message.content
-        
-        return {
-            'content': generated_content,
-            'content_type': content_type,
-            'word_count': len(generated_content.split()),
-            'research_papers_used': len(papers),
-            'generation_successful': True
-        }
-        
-    except Exception as e:
-        logger.error(f"Error generating AI content: {e}")
-        return {
-            'content': f"Error generating content: {str(e)}",
-            'content_type': content_type,
-            'word_count': 0,
-            'research_papers_used': 0,
-            'generation_successful': False,
-            'error': str(e)
-        }
-
-# Content generation prompt functions
-def create_blog_post_prompt(research_context, tone, length, audience, additional_instructions):
-    """Create blog post generation prompt"""
-    word_counts = {'short': '800-1200', 'medium': '1200-1800', 'long': '1800-2500'}
-    target_words = word_counts.get(length, '1200-1800')
-    
-    return f"""
-Create a comprehensive blog post based on the following research data:
-
-RESEARCH KEYWORDS: {research_context['keywords'].get('primary_keywords', [])}
-RESEARCH FINDINGS: {research_context['academic_analysis'].get('marketing_summary', 'Research analysis available')}
-MARKETING INSIGHTS: {research_context['marketing_analysis'].get('executive_summary', 'Marketing analysis available')}
-
-TOP RESEARCH PAPERS:
-{chr(10).join([f"- {paper['title']} by {', '.join(paper['authors'][:2])}" for paper in research_context['papers_summary'][:3]])}
-
-CONTENT REQUIREMENTS:
-- Type: Blog Post
-- Tone: {tone}
-- Length: {target_words} words
-- Target Audience: {audience}
-- Additional Instructions: {additional_instructions}
-
-Create an engaging, well-structured blog post that:
-1. Has a compelling headline
-2. Includes an engaging introduction
-3. Incorporates research findings naturally
-4. Provides actionable insights
-5. Includes subheadings for readability
-6. Concludes with key takeaways
-7. Cites research appropriately
-
-Make the content valuable for the target audience while maintaining the specified tone and length.
-"""
-
-def create_article_prompt(research_context, tone, length, audience, additional_instructions):
-    """Create article generation prompt"""
-    word_counts = {'short': '1000-1500', 'medium': '1500-2500', 'long': '2500-4000'}
-    target_words = word_counts.get(length, '1500-2500')
-    
-    return f"""
-Create a comprehensive article based on the following research data:
-
-RESEARCH KEYWORDS: {research_context['keywords'].get('primary_keywords', [])}
-ACADEMIC ANALYSIS: {research_context['academic_analysis'].get('marketing_summary', 'Research analysis available')}
-MARKETING INSIGHTS: {research_context['marketing_analysis'].get('executive_summary', 'Marketing analysis available')}
-
-RESEARCH PAPERS ANALYZED:
-{chr(10).join([f"- {paper['title']}" for paper in research_context['papers_summary'][:5]])}
-
-CONTENT REQUIREMENTS:
-- Type: In-depth Article
-- Tone: {tone}
-- Length: {target_words} words
-- Target Audience: {audience}
-- Additional Instructions: {additional_instructions}
-
-Create a well-researched, authoritative article that:
-1. Has a compelling title
-2. Includes an executive summary
-3. Provides detailed analysis of research findings
-4. Offers multiple perspectives
-5. Includes data and statistics
-6. Provides actionable recommendations
-7. Has proper citations and references
-
-Ensure the article demonstrates thought leadership and provides deep insights for the target audience.
-"""
-
-def create_social_media_prompt(research_context, tone, length, audience, additional_instructions):
-    """Create social media content generation prompt"""
-    platforms = {'short': 'Twitter threads', 'medium': 'LinkedIn posts', 'long': 'Multi-platform campaign'}
-    platform_type = platforms.get(length, 'LinkedIn posts')
-    
-    return f"""
-Create engaging social media content based on the following research data:
-
-RESEARCH KEYWORDS: {research_context['keywords'].get('primary_keywords', [])}
-KEY FINDINGS: {research_context['academic_analysis'].get('marketing_summary', 'Research insights available')}
-MARKETING INSIGHTS: {research_context['marketing_analysis'].get('executive_summary', 'Marketing analysis available')}
-
-CONTENT REQUIREMENTS:
-- Type: {platform_type}
-- Tone: {tone}
-- Target Audience: {audience}
-- Additional Instructions: {additional_instructions}
-
-Create compelling social media content that:
-1. Grabs attention immediately
-2. Incorporates research insights
-3. Uses engaging visuals concepts
-4. Includes relevant hashtags
-5. Encourages engagement
-6. Provides value to followers
-7. Maintains brand voice
-
-Provide multiple post variations and engagement strategies.
-"""
-
-def create_marketing_copy_prompt(research_context, tone, length, audience, additional_instructions):
-    """Create marketing copy generation prompt"""
-    copy_types = {'short': 'Email subject lines and ads', 'medium': 'Landing page copy', 'long': 'Complete campaign copy'}
-    copy_type = copy_types.get(length, 'Landing page copy')
-    
-    return f"""
-Create persuasive marketing copy based on the following research data:
-
-RESEARCH KEYWORDS: {research_context['keywords'].get('primary_keywords', [])}
-MARKET INSIGHTS: {research_context['marketing_analysis'].get('executive_summary', 'Marketing analysis available')}
-RESEARCH FINDINGS: {research_context['academic_analysis'].get('marketing_summary', 'Research insights available')}
-
-CONTENT REQUIREMENTS:
-- Type: {copy_type}
-- Tone: {tone}
-- Target Audience: {audience}
-- Additional Instructions: {additional_instructions}
-
-Create high-converting marketing copy that:
-1. Addresses target audience pain points
-2. Incorporates research-backed benefits
-3. Uses persuasive language
-4. Includes strong calls-to-action
-5. Builds credibility with research citations
-6. Creates urgency and desire
-7. Optimizes for conversion
-
-Provide multiple variations and A/B testing suggestions.
-"""
-
-def create_whitepaper_prompt(research_context, tone, length, audience, additional_instructions):
-    """Create whitepaper generation prompt"""
-    return f"""
-Create a comprehensive whitepaper based on the following research data:
-
-RESEARCH FOUNDATION: {research_context['keywords'].get('primary_keywords', [])}
-ACADEMIC RESEARCH: {research_context['academic_analysis'].get('marketing_summary', 'Comprehensive research analysis available')}
-MARKET ANALYSIS: {research_context['marketing_analysis'].get('executive_summary', 'Market insights available')}
-
-RESEARCH PAPERS:
-{chr(10).join([f"- {paper['title']} (Citations: {paper['citations']})" for paper in research_context['papers_summary'][:5]])}
-
-CONTENT REQUIREMENTS:
-- Type: Professional Whitepaper
-- Tone: {tone}
-- Target Audience: {audience}
-- Additional Instructions: {additional_instructions}
-
-Create an authoritative whitepaper that:
-1. Has an executive summary
-2. Defines the problem/opportunity
-3. Presents research methodology
-4. Analyzes findings comprehensively
-5. Provides strategic recommendations
-6. Includes charts and data concepts
-7. Has proper citations and bibliography
-
-Structure as a professional, downloadable resource that establishes thought leadership.
-"""
-
-def create_email_campaign_prompt(research_context, tone, length, audience, additional_instructions):
-    """Create email campaign generation prompt"""
-    return f"""
-Create an email campaign series based on the following research data:
-
-RESEARCH INSIGHTS: {research_context['keywords'].get('primary_keywords', [])}
-MARKETING ANALYSIS: {research_context['marketing_analysis'].get('executive_summary', 'Marketing insights available')}
-RESEARCH FINDINGS: {research_context['academic_analysis'].get('marketing_summary', 'Research analysis available')}
-
-CONTENT REQUIREMENTS:
-- Type: Email Campaign Series
-- Tone: {tone}
-- Target Audience: {audience}
-- Additional Instructions: {additional_instructions}
-
-Create a multi-email campaign that:
-1. Has compelling subject lines
-2. Nurtures leads through value
-3. Incorporates research insights
-4. Builds trust and authority
-5. Includes clear CTAs
-6. Segments by audience needs
-7. Optimizes for deliverability
-
-Provide 3-5 emails in sequence with specific purposes and goals.
-"""
-
-def create_press_release_prompt(research_context, tone, length, audience, additional_instructions):
-    """Create press release generation prompt"""
-    return f"""
-Create a press release based on the following research data:
-
-RESEARCH BREAKTHROUGH: {research_context['keywords'].get('primary_keywords', [])}
-RESEARCH FINDINGS: {research_context['academic_analysis'].get('marketing_summary', 'Significant research findings available')}
-MARKET IMPLICATIONS: {research_context['marketing_analysis'].get('executive_summary', 'Market impact analysis available')}
-
-CONTENT REQUIREMENTS:
-- Type: Press Release
-- Tone: {tone}
-- Target Audience: {audience} (Media and stakeholders)
-- Additional Instructions: {additional_instructions}
-
-Create a newsworthy press release that:
-1. Has a compelling headline
-2. Follows proper press release format
-3. Leads with the most important news
-4. Incorporates research credibility
-5. Includes relevant quotes
-6. Provides contact information
-7. Optimizes for media pickup
-
-Make it newsworthy and shareable by journalists and industry publications.
-"""
-
-def create_case_study_prompt(research_context, tone, length, audience, additional_instructions):
-    """Create case study generation prompt"""
-    return f"""
-Create a compelling case study based on the following research data:
-
-RESEARCH BASIS: {research_context['keywords'].get('primary_keywords', [])}
-ANALYTICAL FRAMEWORK: {research_context['academic_analysis'].get('marketing_summary', 'Research methodology and findings available')}
-BUSINESS APPLICATIONS: {research_context['marketing_analysis'].get('executive_summary', 'Business impact analysis available')}
-
-SUPPORTING RESEARCH:
-{chr(10).join([f"- {paper['title']}" for paper in research_context['papers_summary'][:3]])}
-
-CONTENT REQUIREMENTS:
-- Type: Business Case Study
-- Tone: {tone}
-- Target Audience: {audience}
-- Additional Instructions: {additional_instructions}
-
-Create a detailed case study that:
-1. Presents a clear challenge/opportunity
-2. Describes the research-based approach
-3. Details implementation methodology
-4. Presents measurable results
-5. Includes lessons learned
-6. Provides actionable takeaways
-7. Uses data visualization concepts
-
-Structure as a professional case study that demonstrates real-world application of research insights.
-"""
-
-def create_ai_content_document(content_result, keywords_data, analysis_data, content_type, content_tone, content_length):
-    """Create a document with the generated AI content"""
-    try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"ai_content_{content_type}_{timestamp}.docx"
-        
-        # Create Word document
-        doc = Document()
-        
-        # Title
-        title = doc.add_heading(f'AI-Generated {content_type.replace("_", " ").title()}', 0)
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        # Metadata
-        doc.add_heading('Content Details', level=1)
-        doc.add_paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        doc.add_paragraph(f"Content Type: {content_type.replace('_', ' ').title()}")
-        doc.add_paragraph(f"Tone: {content_tone.title()}")
-        doc.add_paragraph(f"Length: {content_length.title()}")
-        doc.add_paragraph(f"Word Count: {content_result.get('word_count', 'Unknown')}")
-        doc.add_paragraph(f"Research Papers Used: {content_result.get('research_papers_used', 0)}")
-        
-        # Keywords used
-        doc.add_heading('Research Keywords', level=1)
-        primary_keywords = keywords_data.get('primary_keywords', [])
-        for keyword in primary_keywords[:10]:
-            doc.add_paragraph(f"• {keyword}")
-        
-        # Generated content
-        doc.add_heading('Generated Content', level=1)
-        
-        # Split content into paragraphs for better formatting
-        content_text = content_result.get('content', '')
-        paragraphs = content_text.split('\n\n')
-        
-        for paragraph in paragraphs:
-            if paragraph.strip():
-                doc.add_paragraph(paragraph.strip())
-        
-        # Research basis
-        doc.add_heading('Research Foundation', level=1)
-        research_summary = analysis_data.get('marketing_summary', 'Research analysis provided the foundation for this content.')
-        doc.add_paragraph(research_summary)
-        
-        # Save document
-        doc.save(filename)
-        
-        return {
-            'filename': filename,
-            'type': 'download',
-            'path': filename,
-            'word_count': content_result.get('word_count', 0),
-            'success': True
-        }
-        
-    except Exception as e:
-        logger.error(f"Error creating AI content document: {e}")
-        return {
-            'filename': '',
-            'type': 'error',
-            'path': '',
-            'error': str(e),
-            'success': False
-        }
+        logger.error(f"Error in AI content generation pipeline: {e}")
+        update_task_status(task_id, 'error', f'Content generation error: {str(e)}', task_status[task_id]['progress'])
 
 @app.route('/ai-content/progress/<task_id>')
 def ai_content_progress(task_id):
-    """Show AI content generation progress"""
-    try:
-        if task_id not in task_status:
-            return render_template('error.html', 
-                                 error_title="Task Not Found",
-                                 error_message="The requested AI content generation task was not found.")
-        
-        return render_template('ai_content_progress.html', task_id=task_id)
-        
-    except Exception as e:
-        logger.error(f"Error showing AI content progress: {e}")
-        return render_template('error.html', 
-                             error_title="Progress Error",
-                             error_message=f"Error displaying progress: {str(e)}")
+    """AI content generation progress page"""
+    if task_id not in task_status:
+        flash('Task not found', 'error')
+        return redirect(url_for('ai_content_generator_form'))
+    
+    return render_template('ai_content_progress.html', task_id=task_id)
 
 @app.route('/ai-content/results/<task_id>')
 def ai_content_results(task_id):
-    """Show AI content generation results"""
-    try:
-        if task_id not in task_status:
-            return render_template('error.html', 
-                                 error_title="Task Not Found",
-                                 error_message="The requested AI content generation task was not found.")
-        
-        status = task_status[task_id]
-        results = task_results.get(task_id, {})
-        
-        if status['status'] != 'completed':
-            return redirect(url_for('ai_content_progress', task_id=task_id))
-        
-        return render_template('ai_content_results.html', 
-                             task_id=task_id, 
-                             status=status, 
-                             results=results)
-        
-    except Exception as e:
-        logger.error(f"Error showing AI content results: {e}")
-        return render_template('error.html', 
-                             error_title="Results Error",
-                             error_message=f"Error displaying results: {str(e)}")
+    """AI content generation results page"""
+    if task_id not in task_status:
+        flash('Task not found', 'error')
+        return redirect(url_for('ai_content_generator_form'))
+    
+    if task_status[task_id]['status'] != 'completed':
+        return redirect(url_for('ai_content_progress', task_id=task_id))
+    
+    results = task_results.get(task_id, {})
+    return render_template('ai_content_results.html', 
+                         task_id=task_id, 
+                         task_info=task_status[task_id],
+                         results=results)
 
 @app.route('/api/ai-content/status/<task_id>')
 def api_ai_content_status(task_id):
-    """API endpoint for AI content generation status"""
-    try:
-        if task_id not in task_status:
-            return jsonify({'error': 'Task not found'}), 404
-        
-        status = task_status[task_id].copy()
-        
-        # Add timing information
-        if 'start_time' in status:
-            elapsed_time = time.time() - status['start_time']
-            status['elapsed_time'] = round(elapsed_time, 2)
+    """API endpoint to get AI content generation status"""
+    if task_id not in task_status:
+        return jsonify({'error': 'Task not found'}), 404
+    
+    status_data = task_status[task_id].copy()
+    
+    # Calculate elapsed time
+    if 'created_at' in status_data:
+        try:
+            created_time = datetime.fromisoformat(status_data['created_at'])
+            elapsed = (datetime.now() - created_time).total_seconds()
+            status_data['elapsed_time'] = elapsed
             
             # Estimate remaining time based on progress
-            if status['progress'] > 0:
-                estimated_total = elapsed_time / (status['progress'] / 100)
-                remaining = max(0, estimated_total - elapsed_time)
-                status['estimated_remaining'] = round(remaining, 2)
-        
-        return jsonify(status)
-        
-    except Exception as e:
-        logger.error(f"Error getting AI content status: {e}")
-        return jsonify({'error': str(e)}), 500
+            if status_data['progress'] > 10:
+                estimated_total = elapsed / (status_data['progress'] / 100)
+                estimated_remaining = max(0, estimated_total - elapsed)
+                status_data['estimated_remaining'] = estimated_remaining
+        except:
+            pass
+    
+    # Add results if completed
+    if status_data['status'] == 'completed' and task_id in task_results:
+        status_data['results'] = task_results[task_id]
+    
+    return jsonify(status_data)
 
 # ================================
 # ERROR HANDLERS

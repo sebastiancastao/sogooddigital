@@ -15,6 +15,10 @@
                 <i class="bi bi-search"></i>
                 Start Research Analysis
             </a>
+            <a href="{{ url_for('ai_content_generator_form') }}" class="btn btn-success">
+                <i class="bi bi-magic"></i>
+                Generate AI Content
+            </a>
             <a href="{{ url_for('task_assignment_form') }}" class="btn btn-secondary">
                 <i class="bi bi-diagram-3"></i>
                 Assign Tasks
@@ -24,7 +28,7 @@
 </div>
 
 <!-- System Status -->
-<div class="grid grid-2 section">
+<div class="grid grid-3 section">
     <!-- Research System -->
     <div class="floating-panel">
         <h3>🔬 Research System</h3>
@@ -112,6 +116,50 @@
             </div>
         {% endif %}
     </div>
+
+    <!-- AI Content Generator System -->
+    <div class="floating-panel">
+        <h3>✨ AI Content Generator</h3>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">Content Agent</span>
+                <span class="status-indicator {{ 'available' if services.ai_content_available else 'unavailable' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Ready' if services.ai_content_available else 'Unavailable' }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">OpenAI Integration</span>
+                <span class="status-indicator {{ 'available' if research_config.openai_available else 'unavailable' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Connected' if research_config.openai_available else 'Not Configured' }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="status-item">
+            <div class="status-header">
+                <span class="status-label">Research Integration</span>
+                <span class="status-indicator {{ 'available' if services.research_agent_available else 'partial' }}">
+                    <span class="status-dot"></span>
+                    {{ 'Active' if services.research_agent_available else 'Limited' }}
+                </span>
+            </div>
+        </div>
+        
+        {% if services.ai_content_available %}
+            <div style="margin-top: 1.5rem;">
+                <a href="{{ url_for('ai_content_generator_form') }}" class="btn btn-primary" style="width: 100%;">
+                    <i class="bi bi-magic"></i>
+                    Launch Content Generator
+                </a>
+            </div>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Features Overview -->
@@ -135,7 +183,7 @@
             </div>
             <h4>AI Content Generator</h4>
             <p class="text-secondary">
-                Transform research into compelling content using AI-powered generation
+                Transform research into compelling content using AI-powered generation with multiple formats
             </p>
         </div>
         
@@ -297,6 +345,12 @@
     
     .feature-item {
         padding: 1rem;
+    }
+}
+
+@media (max-width: 1024px) {
+    .grid-3 {
+        grid-template-columns: 1fr 1fr;
     }
 }
 </style>
