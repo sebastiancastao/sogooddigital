@@ -1258,12 +1258,8 @@ Create a compelling case study:
             {
                 'anchor_phrase': 'digital marketing strategies',
                 'url': 'https://sogooddigital.com/blog/'
-            },
-            {
-                'anchor_phrase': 'business growth solutions',
-                'url': 'https://sogooddigital.com/services/'
             }
-        ]
+        ]  # Only return 1 internal link suggestion
 
     def add_external_links_to_content(self, content: str, keywords_data: Dict[str, Any]) -> str:
         """Add 1 internal link + 2 external links with optimized anchor phrases using markdown format, avoiding intro and conclusion"""
@@ -1337,7 +1333,7 @@ Create a compelling case study:
                         'type': 'internal'
                     }
                 ]
-                all_links.extend(fallback_internal_links[:2])
+                all_links.extend(fallback_internal_links[:1])  # Only add 1 internal link
             
             # Always add 2 external links (regardless of internal links)
             import random
