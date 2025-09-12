@@ -1073,7 +1073,8 @@ Create a compelling case study:
                 
                 for link in blog_links:
                     href = link.get('href')
-                    if href and '/blog/' in href and href != '/blog/' and href != '/blog':
+                    # Look for blog post URLs (more flexible patterns)
+                    if href and ('/blog/' in href or '/post/' in href or '/article/' in href) and href not in ['/blog/', '/blog', '/post/', '/post', '/article/', '/article']:
                         # Extract individual blog post
                         try:
                             # Handle relative URLs
@@ -1144,34 +1145,34 @@ Create a compelling case study:
         """Return fallback internal blog posts when scraping fails"""
         return [
             {
-                'title': 'Digital Marketing Strategies for Business Growth',
-                'url': 'https://sogooddigital.com/blog/digital-marketing-strategies-business-growth',
-                'content': 'Comprehensive guide to digital marketing strategies that drive business growth through data-driven approaches, customer engagement, and conversion optimization.',
-                'excerpt': 'Learn about proven digital marketing strategies that can accelerate your business growth through targeted campaigns and data analysis...'
+                'title': 'Digital Marketing Blog',
+                'url': 'https://sogooddigital.com/blog/',
+                'content': 'Explore our comprehensive collection of digital marketing insights, strategies, and best practices for modern businesses.',
+                'excerpt': 'Discover the latest digital marketing trends, strategies, and insights to grow your business...'
             },
             {
-                'title': 'AI-Powered Content Creation for Modern Businesses',
-                'url': 'https://sogooddigital.com/blog/ai-powered-content-creation-modern-businesses',
-                'content': 'Explore how artificial intelligence is transforming content creation, enabling businesses to produce high-quality, engaging content at scale.',
-                'excerpt': 'Discover how AI is revolutionizing content creation and helping businesses produce engaging, high-quality content more efficiently...'
+                'title': 'Our Services',
+                'url': 'https://sogooddigital.com/services/',
+                'content': 'Professional digital marketing services including SEO, content marketing, social media management, and business strategy consulting.',
+                'excerpt': 'Learn about our comprehensive digital marketing services designed to help your business succeed...'
             },
             {
-                'title': 'Data Analytics and Business Intelligence Solutions',
-                'url': 'https://sogooddigital.com/blog/data-analytics-business-intelligence-solutions',
-                'content': 'Understanding how data analytics and business intelligence can transform decision-making processes and drive competitive advantage.',
-                'excerpt': 'Learn how data analytics and business intelligence solutions can provide actionable insights for better decision-making...'
+                'title': 'About So Good Digital',
+                'url': 'https://sogooddigital.com/about/',
+                'content': 'Learn about our mission to help businesses succeed through innovative digital marketing strategies and data-driven solutions.',
+                'excerpt': 'Discover how So Good Digital helps businesses achieve their goals through expert digital marketing...'
             },
             {
-                'title': 'Customer Experience Optimization Strategies',
-                'url': 'https://sogooddigital.com/blog/customer-experience-optimization-strategies',
-                'content': 'Best practices for optimizing customer experience across all touchpoints to improve satisfaction, retention, and business outcomes.',
-                'excerpt': 'Discover proven strategies for optimizing customer experience and building lasting relationships with your clients...'
+                'title': 'Contact Us',
+                'url': 'https://sogooddigital.com/contact/',
+                'content': 'Get in touch with our team of digital marketing experts to discuss your business goals and marketing strategy needs.',
+                'excerpt': 'Ready to grow your business? Contact our digital marketing experts for a consultation...'
             },
             {
-                'title': 'Digital Transformation and Technology Adoption',
-                'url': 'https://sogooddigital.com/blog/digital-transformation-technology-adoption',
-                'content': 'A comprehensive guide to digital transformation, technology adoption strategies, and change management for modern organizations.',
-                'excerpt': 'Navigate your digital transformation journey with proven strategies for technology adoption and organizational change...'
+                'title': 'Case Studies',
+                'url': 'https://sogooddigital.com/case-studies/',
+                'content': 'Explore real-world examples of how we have helped businesses achieve significant growth through strategic digital marketing.',
+                'excerpt': 'See how we have helped other businesses achieve remarkable results with our digital marketing strategies...'
             }
         ]
 
@@ -1256,16 +1257,16 @@ Create a compelling case study:
         return [
             {
                 'anchor_phrase': 'digital marketing strategies',
-                'url': 'https://sogooddigital.com/blog/digital-marketing-strategies-business-growth'
+                'url': 'https://sogooddigital.com/blog/'
             },
             {
-                'anchor_phrase': 'AI-powered solutions',
-                'url': 'https://sogooddigital.com/blog/ai-powered-content-creation-modern-businesses'
+                'anchor_phrase': 'business growth solutions',
+                'url': 'https://sogooddigital.com/services/'
             }
         ]
 
     def add_external_links_to_content(self, content: str, keywords_data: Dict[str, Any]) -> str:
-        """Add 2 external links with optimized anchor phrases using markdown format, avoiding intro and conclusion"""
+        """Add 1 internal link + 2 external links with optimized anchor phrases using markdown format, avoiding intro and conclusion"""
         
         try:
             # Scrape So Good Digital blogs for internal linking
@@ -1331,42 +1332,36 @@ Create a compelling case study:
                 logger.info("🔄 No internal links found from analysis, using fallback internal links")
                 fallback_internal_links = [
                     {
-                        'url': 'https://sogooddigital.com/blog/digital-marketing-strategies-business-growth',
-                        'anchor_phrase': 'digital marketing strategies',
-                        'type': 'internal'
-                    },
-                    {
-                        'url': 'https://sogooddigital.com/blog/ai-powered-content-creation-modern-businesses',
-                        'anchor_phrase': 'AI-powered content creation',
+                        'url': 'https://sogooddigital.com/blog/',
+                        'anchor_phrase': 'digital marketing insights',
                         'type': 'internal'
                     }
                 ]
                 all_links.extend(fallback_internal_links[:2])
             
-            # Add external links if we need more
+            # Always add 2 external links (regardless of internal links)
             import random
-            if len(all_links) < 2:
-                selected_external = random.sample(external_resources, min(2 - len(all_links), len(external_resources)))
-                for resource in selected_external:
-                    anchor_phrase = self._select_best_anchor_phrase(resource['anchor_phrases'], primary_keywords, content)
-                    all_links.append({
-                        'url': resource['url'],
-                        'anchor_phrase': anchor_phrase,
-                        'type': 'external'
-                    })
+            selected_external = random.sample(external_resources, min(2, len(external_resources)))
+            for resource in selected_external:
+                anchor_phrase = self._select_best_anchor_phrase(resource['anchor_phrases'], primary_keywords, content)
+                all_links.append({
+                    'url': resource['url'],
+                    'anchor_phrase': anchor_phrase,
+                    'type': 'external'
+                })
             
-            # Limit to 2 total links
-            all_links = all_links[:2]
+            # Limit to 3 total links (1 internal + 2 external)
+            all_links = all_links[:3]
             
             links_added = 0
             modified_paragraphs = paragraphs.copy()
             
             for i, link_data in enumerate(all_links):
-                if links_added >= 2:
+                if links_added >= 3:
                     break
                 
                 # Find a good position in middle paragraphs
-                target_paragraph_idx = 1 + (i * len(middle_paragraphs) // 2)
+                target_paragraph_idx = 1 + (i * len(middle_paragraphs) // 3)
                 
                 if target_paragraph_idx < len(modified_paragraphs) - 1:
                     # Insert markdown link naturally into the paragraph
