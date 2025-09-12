@@ -1453,45 +1453,94 @@ Create a compelling case study:
         return '. '.join(sentences)
 
     def _insert_markdown_link_naturally(self, paragraph: str, url: str, anchor_phrase: str) -> str:
-        """Insert a markdown link naturally into a paragraph"""
+        """Insert a markdown link naturally by replacing relevant phrases in the content"""
         
-        # Look for natural insertion points
+        # Split anchor phrase into words for better matching
+        anchor_words = anchor_phrase.lower().split()
+        paragraph_lower = paragraph.lower()
+        
+        # Look for exact or partial matches of the anchor phrase in the content
+        best_match = None
+        best_match_pos = -1
+        best_match_length = 0
+        
+        # Try to find the anchor phrase or similar phrases in the content
+        potential_matches = []
+        
+        # Add the exact anchor phrase
+        if anchor_phrase.lower() in paragraph_lower:
+            start_pos = paragraph_lower.find(anchor_phrase.lower())
+            potential_matches.append((start_pos, len(anchor_phrase), anchor_phrase))
+        
+        # Look for individual words from the anchor phrase
+        for word in anchor_words:
+            if len(word) > 3:  # Only consider meaningful words
+                start = 0
+                while True:
+                    pos = paragraph_lower.find(word, start)
+                    if pos == -1:
+                        break
+                    # Make sure it's a whole word
+                    if (pos == 0 or not paragraph_lower[pos-1].isalnum()) and \
+                       (pos + len(word) >= len(paragraph_lower) or not paragraph_lower[pos + len(word)].isalnum()):
+                        potential_matches.append((pos, len(word), word))
+                    start = pos + 1
+        
+        # Sort matches by position and prefer longer matches
+        potential_matches.sort(key=lambda x: (x[0], -x[1]))
+        
+        # If we found a good match, replace it with the linked version
+        if potential_matches:
+            pos, length, matched_text = potential_matches[0]
+            # Get the actual text from the original paragraph (preserving case)
+            actual_text = paragraph[pos:pos+length]
+            # Replace with linked version
+            linked_text = f"[{actual_text}]({url})"
+            modified_paragraph = paragraph[:pos] + linked_text + paragraph[pos+length:]
+            return modified_paragraph
+        
+        # Fallback: Look for related terms that could be linked
+        related_terms = {
+            'digital transformation': ['digital transformation', 'digital solutions', 'digital platforms', 'digital strategies', 'technology adoption'],
+            'business strategy': ['business strategy', 'strategic planning', 'strategic insights', 'business planning', 'strategic approach'],
+            'market analysis': ['market analysis', 'market research', 'industry analysis', 'market insights', 'market trends'],
+            'industry research': ['industry research', 'research shows', 'studies indicate', 'analysis reveals', 'research findings'],
+            'operational excellence': ['operational excellence', 'operational efficiency', 'business processes', 'process optimization'],
+            'customer experience': ['customer experience', 'customer satisfaction', 'customer engagement', 'user experience'],
+            'business transformation': ['business transformation', 'organizational change', 'business evolution', 'transformation'],
+            'technology trends': ['technology trends', 'emerging technologies', 'technological advances', 'tech innovations'],
+            'strategic thinking': ['strategic thinking', 'strategic planning', 'strategic approach', 'strategic insights']
+        }
+        
+        # Find the best related term to replace
+        for anchor_key, related_list in related_terms.items():
+            if any(word in anchor_phrase.lower() for word in anchor_key.split()):
+                for term in related_list:
+                    if term.lower() in paragraph_lower:
+                        start_pos = paragraph_lower.find(term.lower())
+                        # Get the actual text (preserving case)
+                        actual_text = paragraph[start_pos:start_pos+len(term)]
+                        # Replace with linked version
+                        linked_text = f"[{actual_text}]({url})"
+                        modified_paragraph = paragraph[:start_pos] + linked_text + paragraph[start_pos+len(term):]
+                        return modified_paragraph
+        
+        # Final fallback: Add as a natural reference if no good replacement found
         sentences = paragraph.split('. ')
-        
-        if len(sentences) < 2:
-            return paragraph
-        
-        # Try to find a sentence where the link would fit naturally
-        for i, sentence in enumerate(sentences):
-            sentence_lower = sentence.lower()
+        if len(sentences) >= 2:
+            middle_idx = len(sentences) // 2
+            middle_sentence = sentences[middle_idx]
             
-            # Look for contextual cues where a link would be natural
-            link_cues = [
-                'research shows', 'studies indicate', 'according to', 'experts suggest',
-                'industry leaders', 'best practices', 'proven strategies', 'analysis reveals'
-            ]
+            if not middle_sentence.endswith('.'):
+                middle_sentence += '.'
             
-            if any(cue in sentence_lower for cue in link_cues):
-                # Insert link at the end of this sentence
-                if not sentence.endswith('.'):
-                    sentence += '.'
-                
-                linked_sentence = f"{sentence} This aligns with findings from [{anchor_phrase}]({url})."
-                sentences[i] = linked_sentence
-                return '. '.join(sentences)
+            # Add a more natural reference
+            linked_sentence = f"{middle_sentence} Industry experts emphasize the importance of [{anchor_phrase}]({url}) in this context."
+            sentences[middle_idx] = linked_sentence
+            
+            return '. '.join(sentences)
         
-        # If no natural insertion point found, add to the middle sentence
-        middle_idx = len(sentences) // 2
-        middle_sentence = sentences[middle_idx]
-        
-        if not middle_sentence.endswith('.'):
-            middle_sentence += '.'
-        
-        # Add link as a supporting reference
-        linked_sentence = f"{middle_sentence} For more insights on this topic, see [{anchor_phrase}]({url})."
-        sentences[middle_idx] = linked_sentence
-        
-        return '. '.join(sentences)
+        return paragraph
 
     # def _download_and_save_image(self, image_url: str, concept: str) -> str:
     #     """Download and save the generated image locally"""
